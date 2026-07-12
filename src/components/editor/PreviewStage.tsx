@@ -1,12 +1,17 @@
 import { useEffect, useRef, useState } from "react";
 import { Play, Pause, Download } from "lucide-react";
-import { useEditor, effectiveBorders } from "@/lib/editor/store";
-import { ASPECT_DIMS } from "@/lib/editor/types";
+import { useEditor, effectiveBorders, titleTextForItem } from "@/lib/editor/store";
+import { ASPECT_DIMS, TextOverlaySettings } from "@/lib/editor/types";
 import { downloadBlob } from "@/lib/editor/zip";
 
 export function PreviewStage() {
-  const item = useEditor((s) => s.items.find((i) => i.id === s.selectedId) ?? null);
+  const items = useEditor((s) => s.items);
+  const selectedId = useEditor((s) => s.selectedId);
+  const item = items.find((i) => i.id === selectedId) ?? null;
+  const itemIndex = item ? items.findIndex((i) => i.id === item.id) : 0;
   const global = useEditor((s) => s.globalBorders);
+  const title = useEditor((s) => s.globalTitle);
+  const lower = useEditor((s) => s.globalLower);
   const videoRef = useRef<HTMLVideoElement>(null);
   const [playing, setPlaying] = useState(false);
   const [time, setTime] = useState(0);
