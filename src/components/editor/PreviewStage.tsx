@@ -90,6 +90,15 @@ export function PreviewStage() {
             onEnded={() => setPlaying(false)}
           />
         </div>
+        {item && (
+          <>
+            <TextOverlay
+              settings={title}
+              text={titleTextForItem(item, itemIndex < 0 ? 0 : itemIndex, title)}
+            />
+            <TextOverlay settings={lower} text={lower.text} />
+          </>
+        )}
       </div>
 
       <div className="flex w-full max-w-md items-center gap-3 rounded-lg bg-surface px-3 py-2">
