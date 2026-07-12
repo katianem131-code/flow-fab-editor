@@ -180,7 +180,7 @@ function TextOverlay({ settings, text }: { settings: TextOverlaySettings; text: 
         style={{
           fontFamily,
           fontWeight: 700,
-          fontSize: `${settings.fontSize * 1.4}%`,
+          fontSize: `${settings.fontSize}cqh`,
           color: settings.color,
           background: settings.background ? settings.backgroundColor : "transparent",
           padding: settings.background ? "0.3em 0.6em" : 0,
