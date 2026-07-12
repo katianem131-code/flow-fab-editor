@@ -1,9 +1,55 @@
 import { useRef } from "react";
 import { Upload, Trash2, CheckCircle2, Loader2, AlertCircle } from "lucide-react";
 import { useEditor } from "@/lib/editor/store";
-import { MAX_VIDEOS, MAX_SIZE_MB } from "@/lib/editor/types";
+import { MAX_VIDEOS, MAX_SIZE_MB, type AspectRatio, type BorderSettings } from "@/lib/editor/types";
 
 const ACCEPT = "video/mp4,video/quicktime,video/webm,.mp4,.mov,.webm";
+
+type ImportPreset = {
+  id: string;
+  label: string;
+  hint: string;
+  borders: Partial<BorderSettings> & { aspect: AspectRatio };
+};
+
+const IMPORT_PRESETS: ImportPreset[] = [
+  {
+    id: "reels-white",
+    label: "Reels 9:16 · bordas brancas",
+    hint: "Vídeo centralizado com faixas brancas em cima e embaixo",
+    borders: { aspect: "9:16", zoom: 100, posX: 50, posY: 50, color: "#ffffff" },
+  },
+  {
+    id: "reels-dark",
+    label: "Reels 9:16 · bordas escuras",
+    hint: "Fundo azul-escuro LabRemix",
+    borders: { aspect: "9:16", zoom: 100, posX: 50, posY: 50, color: "#14213D" },
+  },
+  {
+    id: "reels-fill",
+    label: "Reels 9:16 · preencher",
+    hint: "Sem bordas — corta as laterais",
+    borders: { aspect: "9:16", zoom: 175, posX: 50, posY: 50, color: "#000000" },
+  },
+  {
+    id: "square",
+    label: "Quadrado 1:1",
+    hint: "Feed do Instagram",
+    borders: { aspect: "1:1", zoom: 100, posX: 50, posY: 50, color: "#ffffff" },
+  },
+  {
+    id: "portrait-4-5",
+    label: "Retrato 4:5",
+    hint: "Feed vertical",
+    borders: { aspect: "4:5", zoom: 100, posX: 50, posY: 50, color: "#ffffff" },
+  },
+  {
+    id: "landscape",
+    label: "Horizontal 16:9",
+    hint: "YouTube / TV",
+    borders: { aspect: "16:9", zoom: 100, posX: 50, posY: 50, color: "#000000" },
+  },
+];
 
 export function VideoQueue() {
   const items = useEditor((s) => s.items);
