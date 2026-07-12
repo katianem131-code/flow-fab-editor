@@ -67,6 +67,7 @@ export function PreviewStage() {
           width: "min(55vh, 100%)",
           aspectRatio: `${dims.w} / ${dims.h}`,
           backgroundColor: b.color,
+          containerType: "size",
         }}
       >
         <div
