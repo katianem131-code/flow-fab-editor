@@ -156,3 +156,44 @@ function fmt(t: number) {
   const s = Math.floor(t % 60);
   return `${m}:${s.toString().padStart(2, "0")}`;
 }
+
+function TextOverlay({ settings, text }: { settings: TextOverlaySettings; text: string }) {
+  if (!settings.enabled || !text.trim()) return null;
+  const fontFamily =
+    settings.font === "serif"
+      ? "ui-serif, Georgia, serif"
+      : settings.font === "mono"
+        ? "ui-monospace, monospace"
+        : "Inter, ui-sans-serif, system-ui, sans-serif";
+  return (
+    <div
+      className="pointer-events-none absolute left-0 top-0 flex w-full"
+      style={{
+        top: `${settings.posY}%`,
+        transform: "translateY(-50%)",
+        justifyContent: "center",
+        padding: "0 5%",
+      }}
+    >
+      <div
+        style={{
+          fontFamily,
+          fontWeight: 700,
+          fontSize: `${settings.fontSize * 1.4}%`,
+          color: settings.color,
+          background: settings.background ? settings.backgroundColor : "transparent",
+          padding: settings.background ? "0.3em 0.6em" : 0,
+          borderRadius: "0.3em",
+          textShadow: settings.background ? "none" : "0 2px 4px rgba(0,0,0,0.6)",
+          textAlign: "center",
+          maxWidth: "90%",
+          whiteSpace: "pre-wrap",
+          lineHeight: 1.15,
+          marginLeft: `${settings.posX - 50}%`,
+        }}
+      >
+        {text}
+      </div>
+    </div>
+  );
+}
