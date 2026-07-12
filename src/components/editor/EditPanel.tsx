@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useEditor } from "@/lib/editor/store";
 import { BordersTab } from "./BordersTab";
+import { TitleTab, LowerTab } from "./TextTabs";
 import { RotateCw, Lock } from "lucide-react";
 
 type Tab = "bordas" | "titulo" | "inferior" | "overlay";
@@ -26,18 +27,10 @@ export function EditPanel() {
       </div>
 
       <div className="grid grid-cols-4 gap-1 border-b border-border p-2">
-        <TabBtn active={tab === "bordas"} onClick={() => setTab("bordas")}>
-          Bordas
-        </TabBtn>
-        <TabBtn locked active={tab === "titulo"} onClick={() => setTab("titulo")}>
-          Título
-        </TabBtn>
-        <TabBtn locked active={tab === "inferior"} onClick={() => setTab("inferior")}>
-          Inferior
-        </TabBtn>
-        <TabBtn locked active={tab === "overlay"} onClick={() => setTab("overlay")}>
-          Overlay
-        </TabBtn>
+        <TabBtn active={tab === "bordas"} onClick={() => setTab("bordas")}>Bordas</TabBtn>
+        <TabBtn active={tab === "titulo"} onClick={() => setTab("titulo")}>Título</TabBtn>
+        <TabBtn active={tab === "inferior"} onClick={() => setTab("inferior")}>Inferior</TabBtn>
+        <TabBtn locked active={tab === "overlay"} onClick={() => setTab("overlay")}>Overlay</TabBtn>
       </div>
 
       <div className="border-b border-border p-3">
@@ -66,17 +59,16 @@ export function EditPanel() {
         </div>
         {editMode === "single" && item && (
           <p className="mt-2 text-[10px] text-muted-foreground">
-            Editando <span className="font-medium text-foreground">{item.name}</span> individualmente — não afeta os outros {items.length - 1} vídeos
+            Editando <span className="font-medium text-foreground">{item.name}</span> individualmente
           </p>
         )}
       </div>
 
       <div className="flex-1 overflow-y-auto">
-        {tab === "bordas" ? (
-          <BordersTab />
-        ) : (
-          <ComingSoon tab={tab} />
-        )}
+        {tab === "bordas" && <BordersTab />}
+        {tab === "titulo" && <TitleTab />}
+        {tab === "inferior" && <LowerTab />}
+        {tab === "overlay" && <ComingSoon tab="overlay" />}
       </div>
     </div>
   );
@@ -115,9 +107,6 @@ function ComingSoon({ tab }: { tab: string }) {
     <div className="flex h-full flex-col items-center justify-center gap-2 p-6 text-center">
       <Lock className="h-6 w-6 text-muted-foreground" />
       <p className="text-sm font-medium capitalize">{tab} — em breve</p>
-      <p className="text-[11px] text-muted-foreground">
-        Nesta versão do LabRemix, apenas a aba <span className="font-medium text-foreground">Bordas</span> está ativa.
-      </p>
     </div>
   );
 }

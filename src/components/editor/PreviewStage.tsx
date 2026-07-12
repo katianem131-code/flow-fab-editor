@@ -1,12 +1,17 @@
 import { useEffect, useRef, useState } from "react";
 import { Play, Pause, Download } from "lucide-react";
-import { useEditor, effectiveBorders } from "@/lib/editor/store";
-import { ASPECT_DIMS } from "@/lib/editor/types";
+import { useEditor, effectiveBorders, titleTextForItem } from "@/lib/editor/store";
+import { ASPECT_DIMS, TextOverlaySettings } from "@/lib/editor/types";
 import { downloadBlob } from "@/lib/editor/zip";
 
 export function PreviewStage() {
-  const item = useEditor((s) => s.items.find((i) => i.id === s.selectedId) ?? null);
+  const items = useEditor((s) => s.items);
+  const selectedId = useEditor((s) => s.selectedId);
+  const item = items.find((i) => i.id === selectedId) ?? null;
+  const itemIndex = item ? items.findIndex((i) => i.id === item.id) : 0;
   const global = useEditor((s) => s.globalBorders);
+  const title = useEditor((s) => s.globalTitle);
+  const lower = useEditor((s) => s.globalLower);
   const videoRef = useRef<HTMLVideoElement>(null);
   const [playing, setPlaying] = useState(false);
   const [time, setTime] = useState(0);
@@ -62,6 +67,7 @@ export function PreviewStage() {
           width: "min(55vh, 100%)",
           aspectRatio: `${dims.w} / ${dims.h}`,
           backgroundColor: b.color,
+          containerType: "size",
         }}
       >
         <div
@@ -85,6 +91,15 @@ export function PreviewStage() {
             onEnded={() => setPlaying(false)}
           />
         </div>
+        {item && (
+          <>
+            <TextOverlay
+              settings={title}
+              text={titleTextForItem(item, itemIndex < 0 ? 0 : itemIndex, title)}
+            />
+            <TextOverlay settings={lower} text={lower.text} />
+          </>
+        )}
       </div>
 
       <div className="flex w-full max-w-md items-center gap-3 rounded-lg bg-surface px-3 py-2">
@@ -141,4 +156,45 @@ function fmt(t: number) {
   const m = Math.floor(t / 60);
   const s = Math.floor(t % 60);
   return `${m}:${s.toString().padStart(2, "0")}`;
+}
+
+function TextOverlay({ settings, text }: { settings: TextOverlaySettings; text: string }) {
+  if (!settings.enabled || !text.trim()) return null;
+  const fontFamily =
+    settings.font === "serif"
+      ? "ui-serif, Georgia, serif"
+      : settings.font === "mono"
+        ? "ui-monospace, monospace"
+        : "Inter, ui-sans-serif, system-ui, sans-serif";
+  return (
+    <div
+      className="pointer-events-none absolute left-0 top-0 flex w-full"
+      style={{
+        top: `${settings.posY}%`,
+        transform: "translateY(-50%)",
+        justifyContent: "center",
+        padding: "0 5%",
+      }}
+    >
+      <div
+        style={{
+          fontFamily,
+          fontWeight: 700,
+          fontSize: `${settings.fontSize}cqh`,
+          color: settings.color,
+          background: settings.background ? settings.backgroundColor : "transparent",
+          padding: settings.background ? "0.3em 0.6em" : 0,
+          borderRadius: "0.3em",
+          textShadow: settings.background ? "none" : "0 2px 4px rgba(0,0,0,0.6)",
+          textAlign: "center",
+          maxWidth: "90%",
+          whiteSpace: "pre-wrap",
+          lineHeight: 1.15,
+          marginLeft: `${settings.posX - 50}%`,
+        }}
+      >
+        {text}
+      </div>
+    </div>
+  );
 }

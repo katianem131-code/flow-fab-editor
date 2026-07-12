@@ -2,6 +2,9 @@ import { create } from "zustand";
 import {
   BorderSettings,
   DEFAULT_BORDERS,
+  DEFAULT_LOWER,
+  DEFAULT_TITLE,
+  TextOverlaySettings,
   VideoItem,
   VideoStatus,
 } from "./types";
@@ -10,7 +13,9 @@ interface EditorState {
   items: VideoItem[];
   selectedId: string | null;
   globalBorders: BorderSettings;
-  editMode: "batch" | "single"; // which pane is active for the selected item
+  globalTitle: TextOverlaySettings;
+  globalLower: TextOverlaySettings;
+  editMode: "batch" | "single";
   engineReady: boolean;
   engineLoading: boolean;
   engineError: string | null;
@@ -23,6 +28,9 @@ interface EditorState {
   setEditMode: (mode: "batch" | "single") => void;
   updateGlobalBorders: (patch: Partial<BorderSettings>) => void;
   updateItemBorders: (id: string, patch: Partial<BorderSettings>) => void;
+  updateGlobalTitle: (patch: Partial<TextOverlaySettings>) => void;
+  updateGlobalLower: (patch: Partial<TextOverlaySettings>) => void;
+  setTitleOverride: (id: string, text: string) => void;
   resetAll: () => void;
 
   setEngine: (s: Partial<Pick<EditorState, "engineReady" | "engineLoading" | "engineError">>) => void;
@@ -37,6 +45,8 @@ export const useEditor = create<EditorState>((set, get) => ({
   items: [],
   selectedId: null,
   globalBorders: { ...DEFAULT_BORDERS },
+  globalTitle: { ...DEFAULT_TITLE },
+  globalLower: { ...DEFAULT_LOWER },
   editMode: "batch",
   engineReady: false,
   engineLoading: false,
@@ -47,7 +57,7 @@ export const useEditor = create<EditorState>((set, get) => ({
     const toAdd: VideoItem[] = [];
     for (const file of files) {
       if (existing.length + toAdd.length >= 50) break;
-      const item: VideoItem = {
+      toAdd.push({
         id: uid(),
         file,
         name: file.name,
@@ -56,8 +66,7 @@ export const useEditor = create<EditorState>((set, get) => ({
         status: "idle",
         progress: 0,
         borders: null,
-      };
-      toAdd.push(item);
+      });
     }
     set((s) => ({
       items: [...s.items, ...toAdd],
@@ -75,8 +84,7 @@ export const useEditor = create<EditorState>((set, get) => ({
       const items = s.items.filter((i) => i.id !== id);
       return {
         items,
-        selectedId:
-          s.selectedId === id ? (items[0]?.id ?? null) : s.selectedId,
+        selectedId: s.selectedId === id ? (items[0]?.id ?? null) : s.selectedId,
       };
     }),
 
@@ -100,18 +108,30 @@ export const useEditor = create<EditorState>((set, get) => ({
     set((s) => ({
       items: s.items.map((i) =>
         i.id === id
-          ? {
-              ...i,
-              borders: { ...(i.borders ?? s.globalBorders), ...patch },
-            }
+          ? { ...i, borders: { ...(i.borders ?? s.globalBorders), ...patch } }
           : i,
+      ),
+    })),
+
+  updateGlobalTitle: (patch) =>
+    set((s) => ({ globalTitle: { ...s.globalTitle, ...patch } })),
+
+  updateGlobalLower: (patch) =>
+    set((s) => ({ globalLower: { ...s.globalLower, ...patch } })),
+
+  setTitleOverride: (id, text) =>
+    set((s) => ({
+      items: s.items.map((i) =>
+        i.id === id ? { ...i, titleOverride: text } : i,
       ),
     })),
 
   resetAll: () =>
     set((s) => ({
       globalBorders: { ...DEFAULT_BORDERS },
-      items: s.items.map((i) => ({ ...i, borders: null })),
+      globalTitle: { ...DEFAULT_TITLE },
+      globalLower: { ...DEFAULT_LOWER },
+      items: s.items.map((i) => ({ ...i, borders: null, titleOverride: undefined })),
     })),
 
   setEngine: (patch) => set((s) => ({ ...s, ...patch })),
@@ -146,4 +166,21 @@ export const useEditor = create<EditorState>((set, get) => ({
 
 export function effectiveBorders(item: VideoItem, global: BorderSettings): BorderSettings {
   return item.borders ?? global;
+}
+
+/** Get the title text for a specific item, cycling through lines by index. */
+export function titleTextForItem(
+  item: VideoItem,
+  itemIndex: number,
+  title: TextOverlaySettings,
+): string {
+  if (item.titleOverride && item.titleOverride.trim().length > 0) {
+    return item.titleOverride;
+  }
+  const lines = title.lines
+    .split("\n")
+    .map((l) => l.trim())
+    .filter((l) => l.length > 0);
+  if (lines.length === 0) return title.text ?? "";
+  return lines[itemIndex % lines.length];
 }
