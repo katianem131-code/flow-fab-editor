@@ -1,12 +1,14 @@
 import { useState } from "react";
 import { Play, Package, Loader2 } from "lucide-react";
-import { useEditor, effectiveBorders } from "@/lib/editor/store";
+import { useEditor, effectiveBorders, titleTextForItem } from "@/lib/editor/store";
 import { toast } from "sonner";
 import { downloadBlob, zipBlobs } from "@/lib/editor/zip";
 
 export function ProcessBar() {
   const items = useEditor((s) => s.items);
   const globalBorders = useEditor((s) => s.globalBorders);
+  const globalTitle = useEditor((s) => s.globalTitle);
+  const globalLower = useEditor((s) => s.globalLower);
   const engineLoading = useEditor((s) => s.engineLoading);
   const setEngine = useEditor((s) => s.setEngine);
   const setItemStatus = useEditor((s) => s.setItemStatus);
@@ -36,8 +38,15 @@ export function ProcessBar() {
         const it = pending[idx];
         setItemStatus(it.id, "processing", { progress: 0 });
         try {
+          const originalIndex = items.findIndex((x) => x.id === it.id);
           const blob = await processVideo(it.file, {
             borders: effectiveBorders(it, globalBorders),
+            title: globalTitle.enabled
+              ? { settings: globalTitle, text: titleTextForItem(it, originalIndex, globalTitle) }
+              : undefined,
+            lower: globalLower.enabled
+              ? { settings: globalLower, text: globalLower.text }
+              : undefined,
             onProgress: (p) => {
               setItemProgress(it.id, p);
               setGlobalProgress((idx + p) / pending.length);
