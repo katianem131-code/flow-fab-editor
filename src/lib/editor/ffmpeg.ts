@@ -1,11 +1,35 @@
 import { FFmpeg } from "@ffmpeg/ffmpeg";
 import { fetchFile, toBlobURL } from "@ffmpeg/util";
-import { ASPECT_DIMS, BorderSettings } from "./types";
+import { ASPECT_DIMS, BorderSettings, TextOverlaySettings } from "./types";
 
 let instance: FFmpeg | null = null;
 let loading: Promise<FFmpeg> | null = null;
 
 const CORE_BASE = "https://unpkg.com/@ffmpeg/core@0.12.10/dist/umd";
+const FONT_URL = "https://fonts.gstatic.com/s/inter/v13/UcC73FwrK3iLTeHuS_fvQtMwCp50KnMa1ZL7.woff2";
+// Use a TTF for drawtext — Inter TTF from jsDelivr mirror.
+const FONT_TTF_URL = "https://cdn.jsdelivr.net/npm/@fontsource/inter@5.0.16/files/inter-latin-700-normal.woff";
+// Actually drawtext requires TTF/OTF. Use a reliable TTF: DejaVu Sans Bold from a CDN.
+const FONT_TTF = "https://cdn.jsdelivr.net/gh/mozilla/pdf.js@v4.0.379/external/bcmaps/../../test/pdfs/basicapi_test.pdf";
+// Simpler: use Google Fonts direct TTF for Inter (via github mirror).
+const INTER_TTF = "https://raw.githubusercontent.com/rsms/inter/master/docs/font-files/Inter-Bold.ttf";
+
+void FONT_URL;
+void FONT_TTF_URL;
+void FONT_TTF;
+
+let fontLoaded = false;
+
+async function ensureFont(ff: FFmpeg) {
+  if (fontLoaded) return;
+  try {
+    const data = await fetchFile(INTER_TTF);
+    await ff.writeFile("font.ttf", data);
+    fontLoaded = true;
+  } catch (e) {
+    console.warn("Failed to load font, drawtext may fail", e);
+  }
+}
 
 export async function getFFmpeg(onLog?: (m: string) => void): Promise<FFmpeg> {
   if (instance) return instance;
@@ -17,6 +41,7 @@ export async function getFFmpeg(onLog?: (m: string) => void): Promise<FFmpeg> {
       coreURL: await toBlobURL(`${CORE_BASE}/ffmpeg-core.js`, "text/javascript"),
       wasmURL: await toBlobURL(`${CORE_BASE}/ffmpeg-core.wasm`, "application/wasm"),
     });
+    await ensureFont(ff);
     instance = ff;
     return ff;
   })();
@@ -29,45 +54,68 @@ function hexToRgb(hex: string): string {
   return `0x${n.toUpperCase()}`;
 }
 
-/**
- * Build an ffmpeg filter that:
- * - scales the input by the zoom factor while fitting inside the target frame
- * - pads the remaining area with the border color
- * - positions the video within the frame using posX/posY (0..100)
- */
-function buildFilter(b: BorderSettings): string {
+function buildBorderFilter(b: BorderSettings): string {
   const { w: W, h: H } = ASPECT_DIMS[b.aspect];
   const zoom = Math.max(0.5, Math.min(2, b.zoom / 100));
-  // Fit inside frame at zoom=1 (contain). Zoom scales that inner size.
-  // Use scale=w:h:force_original_aspect_ratio=decrease then crop if oversized.
-  const innerW = `min(iw*${W}/iw\\,ih*${W}/ih)`; // placeholder — we'll use a simpler approach below
-  void innerW;
-
-  // Simpler: scale so that the larger side matches frame*zoom, keep AR, then pad, then crop to WxH.
-  // scale=w=W*zoom:h=H*zoom:force_original_aspect_ratio=decrease
   const sw = Math.round(W * zoom);
   const sh = Math.round(H * zoom);
-
-  // Position offset: 0% means top/left, 100% means bottom/right.
-  // pad places scaled video at (x,y) within (W,H) but only if scaled <= frame.
-  // When zoom>1, scaled may exceed frame → we crop.
   const px = (b.posX / 100).toFixed(3);
   const py = (b.posY / 100).toFixed(3);
   const color = hexToRgb(b.color);
-
   return [
     `scale=${sw}:${sh}:force_original_aspect_ratio=decrease`,
-    // pad to at least WxH (if scaled smaller); ow/oh = max(iw,W)
     `pad=w=max(iw\\,${W}):h=max(ih\\,${H}):x=(ow-iw)*${px}:y=(oh-ih)*${py}:color=${color}`,
-    // then crop to exact WxH from center (keeps positioning above)
     `crop=${W}:${H}:(iw-${W})*${px}:(ih-${H})*${py}`,
-    // ensure even dims and yuv420p for h264
     `format=yuv420p`,
   ].join(",");
 }
 
+function escapeDrawtext(t: string): string {
+  // ffmpeg drawtext: escape special chars
+  return t
+    .replace(/\\/g, "\\\\")
+    .replace(/:/g, "\\:")
+    .replace(/'/g, "\\'")
+    .replace(/%/g, "\\%")
+    .replace(/,/g, "\\,");
+}
+
+function buildTextFilter(
+  t: TextOverlaySettings,
+  text: string,
+  aspect: BorderSettings["aspect"],
+): string | null {
+  if (!t.enabled || !text.trim()) return null;
+  const { w: W, h: H } = ASPECT_DIMS[aspect];
+  const fontSize = Math.max(1, Math.round((t.fontSize / 100) * H));
+  const color = hexToRgb(t.color);
+  const bg = hexToRgb(t.backgroundColor);
+  // Anchor at (posX%, posY%) of frame, centered on that point.
+  const x = `(w*${(t.posX / 100).toFixed(3)}-text_w/2)`;
+  const y = `(h*${(t.posY / 100).toFixed(3)}-text_h/2)`;
+  const parts = [
+    `fontfile=font.ttf`,
+    `text='${escapeDrawtext(text)}'`,
+    `fontcolor=${color}`,
+    `fontsize=${fontSize}`,
+    `x=${x}`,
+    `y=${y}`,
+  ];
+  if (t.background) {
+    parts.push(`box=1`, `boxcolor=${bg}@0.85`, `boxborderw=${Math.round(fontSize * 0.3)}`);
+  }
+  // border black outline for readability when no box
+  if (!t.background) {
+    parts.push(`borderw=2`, `bordercolor=0x000000@0.6`);
+  }
+  void W;
+  return `drawtext=${parts.join(":")}`;
+}
+
 export interface ProcessOptions {
   borders: BorderSettings;
+  title?: { settings: TextOverlaySettings; text: string };
+  lower?: { settings: TextOverlaySettings; text: string };
   onProgress?: (p: number) => void;
   signal?: AbortSignal;
 }
@@ -80,7 +128,16 @@ export async function processVideo(
   const inputName = "in_" + Math.random().toString(36).slice(2, 8) + getExt(file.name);
   const outputName = "out_" + Math.random().toString(36).slice(2, 8) + ".mp4";
 
-  const filter = buildFilter(opts.borders);
+  const filters = [buildBorderFilter(opts.borders)];
+  if (opts.title) {
+    const f = buildTextFilter(opts.title.settings, opts.title.text, opts.borders.aspect);
+    if (f) filters.push(f);
+  }
+  if (opts.lower) {
+    const f = buildTextFilter(opts.lower.settings, opts.lower.text, opts.borders.aspect);
+    if (f) filters.push(f);
+  }
+  const filter = filters.join(",");
 
   const onProg = ({ progress }: { progress: number }) => {
     opts.onProgress?.(Math.max(0, Math.min(1, progress)));
@@ -109,11 +166,9 @@ export async function processVideo(
       outputName,
     ]);
     const data = (await ff.readFile(outputName)) as Uint8Array;
-    // Copy into a fresh ArrayBuffer to satisfy Blob typings across TS lib versions
     const copy = new Uint8Array(data.byteLength);
     copy.set(data);
     const blob = new Blob([copy], { type: "video/mp4" });
-    // cleanup
     try {
       await ff.deleteFile(inputName);
       await ff.deleteFile(outputName);
