@@ -54,13 +54,24 @@ const IMPORT_PRESETS: ImportPreset[] = [
 export function VideoQueue() {
   const items = useEditor((s) => s.items);
   const selectedId = useEditor((s) => s.selectedId);
+  const globalBorders = useEditor((s) => s.globalBorders);
   const addFiles = useEditor((s) => s.addFiles);
   const removeItem = useEditor((s) => s.removeItem);
   const clearAll = useEditor((s) => s.clearAll);
   const select = useEditor((s) => s.select);
+  const updateGlobalBorders = useEditor((s) => s.updateGlobalBorders);
   const inputRef = useRef<HTMLInputElement>(null);
 
   const readyCount = items.filter((i) => i.status === "done").length;
+
+  // Detecta o preset ativo comparando aspect + color + zoom
+  const activePresetId =
+    IMPORT_PRESETS.find(
+      (p) =>
+        p.borders.aspect === globalBorders.aspect &&
+        p.borders.color?.toLowerCase() === globalBorders.color.toLowerCase() &&
+        Math.abs((p.borders.zoom ?? 100) - globalBorders.zoom) < 5,
+    )?.id ?? "custom";
 
   const onFiles = (files: FileList | null) => {
     if (!files) return;
@@ -77,6 +88,33 @@ export function VideoQueue() {
         <h2 className="text-base font-semibold">Editor em lote</h2>
         <p className="text-[11px] text-muted-foreground">
           Até {MAX_VIDEOS} vídeos · {MAX_SIZE_MB}MB · 180s cada
+        </p>
+      </div>
+
+      <div className="rounded-lg border border-border bg-surface p-2.5">
+        <label className="mb-1.5 block text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
+          Formato ao importar
+        </label>
+        <select
+          value={activePresetId}
+          onChange={(e) => {
+            const preset = IMPORT_PRESETS.find((p) => p.id === e.target.value);
+            if (preset) updateGlobalBorders(preset.borders);
+          }}
+          className="w-full rounded-md border border-border bg-background px-2 py-1.5 text-xs focus:border-primary focus:outline-none"
+        >
+          {IMPORT_PRESETS.map((p) => (
+            <option key={p.id} value={p.id}>
+              {p.label}
+            </option>
+          ))}
+          {activePresetId === "custom" && (
+            <option value="custom">Personalizado</option>
+          )}
+        </select>
+        <p className="mt-1 text-[10px] text-muted-foreground">
+          {IMPORT_PRESETS.find((p) => p.id === activePresetId)?.hint ??
+            "Ajustes personalizados aplicados manualmente"}
         </p>
       </div>
 
