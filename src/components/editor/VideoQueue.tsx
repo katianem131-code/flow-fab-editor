@@ -1,20 +1,77 @@
 import { useRef } from "react";
 import { Upload, Trash2, CheckCircle2, Loader2, AlertCircle } from "lucide-react";
 import { useEditor } from "@/lib/editor/store";
-import { MAX_VIDEOS, MAX_SIZE_MB } from "@/lib/editor/types";
+import { MAX_VIDEOS, MAX_SIZE_MB, type AspectRatio, type BorderSettings } from "@/lib/editor/types";
 
 const ACCEPT = "video/mp4,video/quicktime,video/webm,.mp4,.mov,.webm";
+
+type ImportPreset = {
+  id: string;
+  label: string;
+  hint: string;
+  borders: Partial<BorderSettings> & { aspect: AspectRatio };
+};
+
+const IMPORT_PRESETS: ImportPreset[] = [
+  {
+    id: "reels-white",
+    label: "Reels 9:16 · bordas brancas",
+    hint: "Vídeo centralizado com faixas brancas em cima e embaixo",
+    borders: { aspect: "9:16", zoom: 100, posX: 50, posY: 50, color: "#ffffff" },
+  },
+  {
+    id: "reels-dark",
+    label: "Reels 9:16 · bordas escuras",
+    hint: "Fundo azul-escuro LabRemix",
+    borders: { aspect: "9:16", zoom: 100, posX: 50, posY: 50, color: "#14213D" },
+  },
+  {
+    id: "reels-fill",
+    label: "Reels 9:16 · preencher",
+    hint: "Sem bordas — corta as laterais",
+    borders: { aspect: "9:16", zoom: 175, posX: 50, posY: 50, color: "#000000" },
+  },
+  {
+    id: "square",
+    label: "Quadrado 1:1",
+    hint: "Feed do Instagram",
+    borders: { aspect: "1:1", zoom: 100, posX: 50, posY: 50, color: "#ffffff" },
+  },
+  {
+    id: "portrait-4-5",
+    label: "Retrato 4:5",
+    hint: "Feed vertical",
+    borders: { aspect: "4:5", zoom: 100, posX: 50, posY: 50, color: "#ffffff" },
+  },
+  {
+    id: "landscape",
+    label: "Horizontal 16:9",
+    hint: "YouTube / TV",
+    borders: { aspect: "16:9", zoom: 100, posX: 50, posY: 50, color: "#000000" },
+  },
+];
 
 export function VideoQueue() {
   const items = useEditor((s) => s.items);
   const selectedId = useEditor((s) => s.selectedId);
+  const globalBorders = useEditor((s) => s.globalBorders);
   const addFiles = useEditor((s) => s.addFiles);
   const removeItem = useEditor((s) => s.removeItem);
   const clearAll = useEditor((s) => s.clearAll);
   const select = useEditor((s) => s.select);
+  const updateGlobalBorders = useEditor((s) => s.updateGlobalBorders);
   const inputRef = useRef<HTMLInputElement>(null);
 
   const readyCount = items.filter((i) => i.status === "done").length;
+
+  // Detecta o preset ativo comparando aspect + color + zoom
+  const activePresetId =
+    IMPORT_PRESETS.find(
+      (p) =>
+        p.borders.aspect === globalBorders.aspect &&
+        p.borders.color?.toLowerCase() === globalBorders.color.toLowerCase() &&
+        Math.abs((p.borders.zoom ?? 100) - globalBorders.zoom) < 5,
+    )?.id ?? "custom";
 
   const onFiles = (files: FileList | null) => {
     if (!files) return;
@@ -31,6 +88,33 @@ export function VideoQueue() {
         <h2 className="text-base font-semibold">Editor em lote</h2>
         <p className="text-[11px] text-muted-foreground">
           Até {MAX_VIDEOS} vídeos · {MAX_SIZE_MB}MB · 180s cada
+        </p>
+      </div>
+
+      <div className="rounded-lg border border-border bg-surface p-2.5">
+        <label className="mb-1.5 block text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
+          Formato ao importar
+        </label>
+        <select
+          value={activePresetId}
+          onChange={(e) => {
+            const preset = IMPORT_PRESETS.find((p) => p.id === e.target.value);
+            if (preset) updateGlobalBorders(preset.borders);
+          }}
+          className="w-full rounded-md border border-border bg-background px-2 py-1.5 text-xs focus:border-primary focus:outline-none"
+        >
+          {IMPORT_PRESETS.map((p) => (
+            <option key={p.id} value={p.id}>
+              {p.label}
+            </option>
+          ))}
+          {activePresetId === "custom" && (
+            <option value="custom">Personalizado</option>
+          )}
+        </select>
+        <p className="mt-1 text-[10px] text-muted-foreground">
+          {IMPORT_PRESETS.find((p) => p.id === activePresetId)?.hint ??
+            "Ajustes personalizados aplicados manualmente"}
         </p>
       </div>
 
