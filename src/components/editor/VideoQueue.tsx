@@ -17,13 +17,13 @@ const IMPORT_PRESETS: ImportPreset[] = [
     id: "reels-white",
     label: "Reels 9:16 · bordas brancas",
     hint: "Vídeo centralizado com faixas brancas em cima e embaixo",
-    borders: { aspect: "9:16", zoom: 100, posX: 50, posY: 50, color: "#ffffff" },
+    borders: { aspect: "9:16", zoom: 80, posX: 50, posY: 50, color: "#ffffff" },
   },
   {
     id: "reels-dark",
     label: "Reels 9:16 · bordas escuras",
     hint: "Fundo azul-escuro LabRemix",
-    borders: { aspect: "9:16", zoom: 100, posX: 50, posY: 50, color: "#14213D" },
+    borders: { aspect: "9:16", zoom: 80, posX: 50, posY: 50, color: "#14213D" },
   },
   {
     id: "reels-fill",
