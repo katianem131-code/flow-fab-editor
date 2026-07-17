@@ -56,16 +56,28 @@ function hexToRgb(hex: string): string {
 
 function buildBorderFilter(b: BorderSettings): string {
   const { w: W, h: H } = ASPECT_DIMS[b.aspect];
+  const clamp = (v: number, lo: number, hi: number) => Math.max(lo, Math.min(hi, v));
+  const bt = clamp(b.borderTop ?? 0, 0, 45);
+  const bb = clamp(b.borderBottom ?? 0, 0, 45);
+  const bl = clamp(b.borderLeft ?? 0, 0, 45);
+  const br = clamp(b.borderRight ?? 0, 0, 45);
+  const T = Math.round((bt / 100) * H);
+  const B = Math.round((bb / 100) * H);
+  const L = Math.round((bl / 100) * W);
+  const R = Math.round((br / 100) * W);
+  const innerW = Math.max(2, W - L - R);
+  const innerH = Math.max(2, H - T - B);
   const zoom = Math.max(0.5, Math.min(2, b.zoom / 100));
-  const sw = Math.round(W * zoom);
-  const sh = Math.round(H * zoom);
+  const sw = Math.round(innerW * zoom);
+  const sh = Math.round(innerH * zoom);
   const px = (b.posX / 100).toFixed(3);
   const py = (b.posY / 100).toFixed(3);
   const color = hexToRgb(b.color);
   return [
     `scale=${sw}:${sh}:force_original_aspect_ratio=decrease`,
-    `pad=w=max(iw\\,${W}):h=max(ih\\,${H}):x=(ow-iw)*${px}:y=(oh-ih)*${py}:color=${color}`,
-    `crop=${W}:${H}:(iw-${W})*${px}:(ih-${H})*${py}`,
+    `pad=w=max(iw\\,${innerW}):h=max(ih\\,${innerH}):x=(ow-iw)*${px}:y=(oh-ih)*${py}:color=${color}`,
+    `crop=${innerW}:${innerH}:(iw-${innerW})*${px}:(ih-${innerH})*${py}`,
+    `pad=w=${W}:h=${H}:x=${L}:y=${T}:color=${color}`,
     `format=yuv420p`,
   ].join(",");
 }

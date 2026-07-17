@@ -59,6 +59,11 @@ export function PreviewStage() {
     setTime(t);
   };
 
+  const bt = b.borderTop ?? 0;
+  const bb = b.borderBottom ?? 0;
+  const bl = b.borderLeft ?? 0;
+  const br = b.borderRight ?? 0;
+
   return (
     <div className="flex h-full flex-col items-center justify-center gap-3 p-6">
       <div
@@ -71,8 +76,13 @@ export function PreviewStage() {
         }}
       >
         <div
-          className="absolute inset-0 flex"
+          className="absolute overflow-hidden flex"
           style={{
+            top: `${bt}%`,
+            bottom: `${bb}%`,
+            left: `${bl}%`,
+            right: `${br}%`,
+            backgroundColor: b.color,
             justifyContent: b.posX < 33 ? "flex-start" : b.posX > 66 ? "flex-end" : "center",
             alignItems: b.posY < 33 ? "flex-start" : b.posY > 66 ? "flex-end" : "center",
           }}

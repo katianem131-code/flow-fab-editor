@@ -6,6 +6,11 @@ export interface BorderSettings {
   posX: number;
   color: string;
   aspect: AspectRatio;
+  /** Extra solid border, % of frame height (top/bottom) and width (left/right). */
+  borderTop: number;
+  borderBottom: number;
+  borderLeft: number;
+  borderRight: number;
 }
 
 export const DEFAULT_BORDERS: BorderSettings = {
@@ -14,6 +19,10 @@ export const DEFAULT_BORDERS: BorderSettings = {
   posX: 50,
   color: "#ffffff",
   aspect: "9:16",
+  borderTop: 0,
+  borderBottom: 0,
+  borderLeft: 0,
+  borderRight: 0,
 };
 
 export type TextPosition =
