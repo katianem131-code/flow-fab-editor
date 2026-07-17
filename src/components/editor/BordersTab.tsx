@@ -52,6 +52,16 @@ export function BordersTab() {
       <Slider label="Posição vertical" value={b.posY} min={0} max={100} suffix="%" onChange={(v) => patch({ posY: v })} />
       <Slider label="Posição horizontal" value={b.posX} min={0} max={100} suffix="%" onChange={(v) => patch({ posX: v })} />
 
+      <div className="mt-2 border-t border-border pt-3">
+        <div className="mb-2 text-xs font-medium">Bordas independentes</div>
+        <div className="grid grid-cols-2 gap-x-3 gap-y-2">
+          <Slider label="Superior" value={b.borderTop ?? 0} min={0} max={45} suffix="%" onChange={(v) => patch({ borderTop: v })} />
+          <Slider label="Inferior" value={b.borderBottom ?? 0} min={0} max={45} suffix="%" onChange={(v) => patch({ borderBottom: v })} />
+          <Slider label="Esquerda" value={b.borderLeft ?? 0} min={0} max={45} suffix="%" onChange={(v) => patch({ borderLeft: v })} />
+          <Slider label="Direita" value={b.borderRight ?? 0} min={0} max={45} suffix="%" onChange={(v) => patch({ borderRight: v })} />
+        </div>
+      </div>
+
       <div>
         <div className="mb-1 text-xs font-medium">Proporção de saída</div>
         <div className="grid grid-cols-4 gap-1">
