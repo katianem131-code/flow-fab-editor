@@ -62,6 +62,17 @@ export function BordersTab() {
         </div>
       </div>
 
+      <div className="border-t border-border pt-3">
+        <div className="mb-2 text-xs font-medium">Esticar vídeo (deforma)</div>
+        <div className="grid grid-cols-2 gap-x-3 gap-y-2">
+          <Slider label="Largura" value={b.stretchX ?? 100} min={30} max={300} suffix="%" onChange={(v) => patch({ stretchX: v })} />
+          <Slider label="Altura" value={b.stretchY ?? 100} min={30} max={300} suffix="%" onChange={(v) => patch({ stretchY: v })} />
+        </div>
+        <p className="mt-1 text-[10px] text-muted-foreground">
+          100% mantém proporção. Valores diferentes esticam apenas em uma direção.
+        </p>
+      </div>
+
       <div>
         <div className="mb-1 text-xs font-medium">Proporção de saída</div>
         <div className="grid grid-cols-4 gap-1">
