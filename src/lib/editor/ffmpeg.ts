@@ -68,6 +68,8 @@ function buildBorderFilter(b: BorderSettings): string {
   const innerW = Math.max(2, W - L - R);
   const innerH = Math.max(2, H - T - B);
   const zoom = Math.max(0.5, Math.min(2, b.zoom / 100));
+  const sX = Math.max(0.3, Math.min(3, (b.stretchX ?? 100) / 100));
+  const sY = Math.max(0.3, Math.min(3, (b.stretchY ?? 100) / 100));
   const sw = Math.round(innerW * zoom);
   const sh = Math.round(innerH * zoom);
   const px = (b.posX / 100).toFixed(3);
@@ -75,6 +77,7 @@ function buildBorderFilter(b: BorderSettings): string {
   const color = hexToRgb(b.color);
   return [
     `scale=${sw}:${sh}:force_original_aspect_ratio=decrease`,
+    `scale=trunc(iw*${sX.toFixed(3)}/2)*2:trunc(ih*${sY.toFixed(3)}/2)*2`,
     `pad=w=max(iw\\,${innerW}):h=max(ih\\,${innerH}):x=(ow-iw)*${px}:y=(oh-ih)*${py}:color=${color}`,
     `crop=${innerW}:${innerH}:(iw-${innerW})*${px}:(ih-${innerH})*${py}`,
     `pad=w=${W}:h=${H}:x=${L}:y=${T}:color=${color}`,

@@ -11,6 +11,9 @@ export interface BorderSettings {
   borderBottom: number;
   borderLeft: number;
   borderRight: number;
+  /** Non-uniform stretch of the video, % (100 = original aspect). */
+  stretchX: number;
+  stretchY: number;
 }
 
 export const DEFAULT_BORDERS: BorderSettings = {
@@ -23,6 +26,8 @@ export const DEFAULT_BORDERS: BorderSettings = {
   borderBottom: 0,
   borderLeft: 0,
   borderRight: 0,
+  stretchX: 100,
+  stretchY: 100,
 };
 
 export type TextPosition =
