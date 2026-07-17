@@ -92,7 +92,7 @@ export function PreviewStage() {
             src={src}
             className="h-full w-full object-contain"
             style={{
-              transform: `scale(${zoom}) translate(${(b.posX - 50) * 0.6}%, ${(b.posY - 50) * 0.6}%)`,
+              transform: `scale(${zoom * ((b.stretchX ?? 100) / 100)}, ${zoom * ((b.stretchY ?? 100) / 100)}) translate(${(b.posX - 50) * 0.6}%, ${(b.posY - 50) * 0.6}%)`,
               transformOrigin: "center center",
             }}
             playsInline
