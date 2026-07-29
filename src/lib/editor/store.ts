@@ -9,9 +9,43 @@ import {
   OverlayPreset,
   DEFAULT_OVERLAY,
   MAX_OVERLAY_PRESETS,
+  StylePreset,
+  MAX_STYLE_PRESETS,
   VideoItem,
   VideoStatus,
 } from "./types";
+
+const STORAGE_KEY = "labremix:presets:v1";
+
+interface PersistedShape {
+  stylePresets: StylePreset[];
+  overlayPresets: OverlayPreset[];
+}
+
+function loadPersisted(): PersistedShape {
+  if (typeof window === "undefined") return { stylePresets: [], overlayPresets: [] };
+  try {
+    const raw = window.localStorage.getItem(STORAGE_KEY);
+    if (!raw) return { stylePresets: [], overlayPresets: [] };
+    const parsed = JSON.parse(raw) as Partial<PersistedShape>;
+    return {
+      stylePresets: Array.isArray(parsed.stylePresets) ? parsed.stylePresets : [],
+      overlayPresets: Array.isArray(parsed.overlayPresets) ? parsed.overlayPresets : [],
+    };
+  } catch {
+    return { stylePresets: [], overlayPresets: [] };
+  }
+}
+
+function persist(data: PersistedShape) {
+  if (typeof window === "undefined") return;
+  try {
+    window.localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+  } catch {
+    /* quota exceeded — ignore */
+  }
+}
+
 
 interface EditorState {
   items: VideoItem[];
