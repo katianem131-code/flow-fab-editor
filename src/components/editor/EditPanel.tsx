@@ -102,12 +102,3 @@ function TabBtn({
     </button>
   );
 }
-
-function ComingSoon({ tab }: { tab: string }) {
-  return (
-    <div className="flex h-full flex-col items-center justify-center gap-2 p-6 text-center">
-      <Lock className="h-6 w-6 text-muted-foreground" />
-      <p className="text-sm font-medium capitalize">{tab} — em breve</p>
-    </div>
-  );
-}
