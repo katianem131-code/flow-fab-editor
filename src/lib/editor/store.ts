@@ -41,24 +41,6 @@ interface EditorState {
   addOverlayPreset: (name: string, src: string) => void;
   removeOverlayPreset: (id: string) => void;
   applyOverlayPreset: (id: string) => void;
-  updateOverlay: (patch) => set((s) => ({ overlay: { ...s.overlay, ...patch } })),
-
-  addOverlayPreset: (name, src) =>
-    set((s) =>
-      s.overlayPresets.length >= MAX_OVERLAY_PRESETS
-        ? s
-        : { overlayPresets: [...s.overlayPresets, { id: uid(), name, src }] },
-    ),
-
-  removeOverlayPreset: (id) =>
-    set((s) => ({ overlayPresets: s.overlayPresets.filter((p) => p.id !== id) })),
-
-  applyOverlayPreset: (id) =>
-    set((s) => {
-      const p = s.overlayPresets.find((x) => x.id === id);
-      if (!p) return s;
-      return { overlay: { ...s.overlay, enabled: true, src: p.src, name: p.name } };
-    }),
 
   resetAll: () => void;
 
