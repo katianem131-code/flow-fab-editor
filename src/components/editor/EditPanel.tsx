@@ -3,6 +3,7 @@ import { useEditor } from "@/lib/editor/store";
 import { BordersTab } from "./BordersTab";
 import { TitleTab, LowerTab } from "./TextTabs";
 import { OverlayTab } from "./OverlayTab";
+import { PresetsBar } from "./PresetsBar";
 import { RotateCw, Lock } from "lucide-react";
 
 type Tab = "bordas" | "titulo" | "inferior" | "overlay";
