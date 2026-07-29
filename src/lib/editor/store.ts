@@ -77,6 +77,11 @@ interface EditorState {
   removeOverlayPreset: (id: string) => void;
   applyOverlayPreset: (id: string) => void;
 
+  saveStylePreset: (name: string) => void;
+  applyStylePreset: (id: string) => void;
+  removeStylePreset: (id: string) => void;
+  renameStylePreset: (id: string, name: string) => void;
+
   resetAll: () => void;
 
   setEngine: (s: Partial<Pick<EditorState, "engineReady" | "engineLoading" | "engineError">>) => void;
