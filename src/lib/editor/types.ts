@@ -154,3 +154,15 @@ export interface OverlayPreset {
 }
 
 export const MAX_OVERLAY_PRESETS = 5;
+
+export interface StylePreset {
+  id: string;
+  name: string;
+  createdAt: number;
+  borders: BorderSettings;
+  title: TextOverlaySettings;
+  lower: TextOverlaySettings;
+  overlay: OverlaySettings;
+}
+
+export const MAX_STYLE_PRESETS = 12;

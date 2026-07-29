@@ -9,9 +9,43 @@ import {
   OverlayPreset,
   DEFAULT_OVERLAY,
   MAX_OVERLAY_PRESETS,
+  StylePreset,
+  MAX_STYLE_PRESETS,
   VideoItem,
   VideoStatus,
 } from "./types";
+
+const STORAGE_KEY = "labremix:presets:v1";
+
+interface PersistedShape {
+  stylePresets: StylePreset[];
+  overlayPresets: OverlayPreset[];
+}
+
+function loadPersisted(): PersistedShape {
+  if (typeof window === "undefined") return { stylePresets: [], overlayPresets: [] };
+  try {
+    const raw = window.localStorage.getItem(STORAGE_KEY);
+    if (!raw) return { stylePresets: [], overlayPresets: [] };
+    const parsed = JSON.parse(raw) as Partial<PersistedShape>;
+    return {
+      stylePresets: Array.isArray(parsed.stylePresets) ? parsed.stylePresets : [],
+      overlayPresets: Array.isArray(parsed.overlayPresets) ? parsed.overlayPresets : [],
+    };
+  } catch {
+    return { stylePresets: [], overlayPresets: [] };
+  }
+}
+
+function persist(data: PersistedShape) {
+  if (typeof window === "undefined") return;
+  try {
+    window.localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+  } catch {
+    /* quota exceeded — ignore */
+  }
+}
+
 
 interface EditorState {
   items: VideoItem[];
@@ -21,6 +55,7 @@ interface EditorState {
   globalLower: TextOverlaySettings;
   overlay: OverlaySettings;
   overlayPresets: OverlayPreset[];
+  stylePresets: StylePreset[];
   editMode: "batch" | "single";
   engineReady: boolean;
   engineLoading: boolean;
@@ -42,6 +77,12 @@ interface EditorState {
   removeOverlayPreset: (id: string) => void;
   applyOverlayPreset: (id: string) => void;
 
+  saveStylePreset: (name: string) => void;
+  applyStylePreset: (id: string) => void;
+  removeStylePreset: (id: string) => void;
+  renameStylePreset: (id: string, name: string) => void;
+  hydratePresets: () => void;
+
   resetAll: () => void;
 
   setEngine: (s: Partial<Pick<EditorState, "engineReady" | "engineLoading" | "engineError">>) => void;
@@ -60,6 +101,11 @@ export const useEditor = create<EditorState>((set, get) => ({
   globalLower: { ...DEFAULT_LOWER },
   overlay: { ...DEFAULT_OVERLAY },
   overlayPresets: [],
+  stylePresets: [],
+  hydratePresets: () => {
+    const data = loadPersisted();
+    set({ stylePresets: data.stylePresets, overlayPresets: data.overlayPresets });
+  },
   editMode: "batch",
   engineReady: false,
   engineLoading: false,
@@ -142,14 +188,19 @@ export const useEditor = create<EditorState>((set, get) => ({
   updateOverlay: (patch) => set((s) => ({ overlay: { ...s.overlay, ...patch } })),
 
   addOverlayPreset: (name, src) =>
-    set((s) =>
-      s.overlayPresets.length >= MAX_OVERLAY_PRESETS
-        ? s
-        : { overlayPresets: [...s.overlayPresets, { id: uid(), name, src }] },
-    ),
+    set((s) => {
+      if (s.overlayPresets.length >= MAX_OVERLAY_PRESETS) return s;
+      const overlayPresets = [...s.overlayPresets, { id: uid(), name, src }];
+      persist({ stylePresets: s.stylePresets, overlayPresets });
+      return { overlayPresets };
+    }),
 
   removeOverlayPreset: (id) =>
-    set((s) => ({ overlayPresets: s.overlayPresets.filter((p) => p.id !== id) })),
+    set((s) => {
+      const overlayPresets = s.overlayPresets.filter((p) => p.id !== id);
+      persist({ stylePresets: s.stylePresets, overlayPresets });
+      return { overlayPresets };
+    }),
 
   applyOverlayPreset: (id) =>
     set((s) => {
@@ -157,6 +208,52 @@ export const useEditor = create<EditorState>((set, get) => ({
       if (!p) return s;
       return { overlay: { ...s.overlay, enabled: true, src: p.src, name: p.name } };
     }),
+
+  saveStylePreset: (name) =>
+    set((s) => {
+      const preset: StylePreset = {
+        id: uid(),
+        name: name.trim() || `Ajuste ${s.stylePresets.length + 1}`,
+        createdAt: Date.now(),
+        borders: { ...s.globalBorders },
+        title: { ...s.globalTitle },
+        lower: { ...s.globalLower },
+        overlay: { ...s.overlay },
+      };
+      const stylePresets = [preset, ...s.stylePresets].slice(0, MAX_STYLE_PRESETS);
+      persist({ stylePresets, overlayPresets: s.overlayPresets });
+      return { stylePresets };
+    }),
+
+  applyStylePreset: (id) =>
+    set((s) => {
+      const p = s.stylePresets.find((x) => x.id === id);
+      if (!p) return s;
+      return {
+        globalBorders: { ...DEFAULT_BORDERS, ...p.borders },
+        globalTitle: { ...DEFAULT_TITLE, ...p.title },
+        globalLower: { ...DEFAULT_LOWER, ...p.lower },
+        overlay: { ...DEFAULT_OVERLAY, ...p.overlay },
+        items: s.items.map((i) => ({ ...i, borders: null })),
+      };
+    }),
+
+  removeStylePreset: (id) =>
+    set((s) => {
+      const stylePresets = s.stylePresets.filter((p) => p.id !== id);
+      persist({ stylePresets, overlayPresets: s.overlayPresets });
+      return { stylePresets };
+    }),
+
+  renameStylePreset: (id, name) =>
+    set((s) => {
+      const stylePresets = s.stylePresets.map((p) =>
+        p.id === id ? { ...p, name: name.trim() || p.name } : p,
+      );
+      persist({ stylePresets, overlayPresets: s.overlayPresets });
+      return { stylePresets };
+    }),
+
 
   resetAll: () =>
     set((s) => ({
