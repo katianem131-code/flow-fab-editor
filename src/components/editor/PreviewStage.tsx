@@ -12,6 +12,7 @@ export function PreviewStage() {
   const global = useEditor((s) => s.globalBorders);
   const title = useEditor((s) => s.globalTitle);
   const lower = useEditor((s) => s.globalLower);
+  const overlay = useEditor((s) => s.overlay);
   const videoRef = useRef<HTMLVideoElement>(null);
   const [playing, setPlaying] = useState(false);
   const [time, setTime] = useState(0);
@@ -108,6 +109,20 @@ export function PreviewStage() {
               text={titleTextForItem(item, itemIndex < 0 ? 0 : itemIndex, title)}
             />
             <TextOverlay settings={lower} text={lower.text} />
+            {overlay.enabled && overlay.src && (
+              <img
+                src={overlay.src}
+                alt="Overlay"
+                className="pointer-events-none absolute select-none"
+                style={{
+                  width: `${overlay.scale}%`,
+                  left: `${overlay.posX}%`,
+                  top: `${overlay.posY}%`,
+                  transform: "translate(-50%, -50%)",
+                  opacity: overlay.opacity / 100,
+                }}
+              />
+            )}
           </>
         )}
       </div>

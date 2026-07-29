@@ -5,6 +5,10 @@ import {
   DEFAULT_LOWER,
   DEFAULT_TITLE,
   TextOverlaySettings,
+  OverlaySettings,
+  OverlayPreset,
+  DEFAULT_OVERLAY,
+  MAX_OVERLAY_PRESETS,
   VideoItem,
   VideoStatus,
 } from "./types";
@@ -15,6 +19,8 @@ interface EditorState {
   globalBorders: BorderSettings;
   globalTitle: TextOverlaySettings;
   globalLower: TextOverlaySettings;
+  overlay: OverlaySettings;
+  overlayPresets: OverlayPreset[];
   editMode: "batch" | "single";
   engineReady: boolean;
   engineLoading: boolean;
@@ -31,6 +37,11 @@ interface EditorState {
   updateGlobalTitle: (patch: Partial<TextOverlaySettings>) => void;
   updateGlobalLower: (patch: Partial<TextOverlaySettings>) => void;
   setTitleOverride: (id: string, text: string) => void;
+  updateOverlay: (patch: Partial<OverlaySettings>) => void;
+  addOverlayPreset: (name: string, src: string) => void;
+  removeOverlayPreset: (id: string) => void;
+  applyOverlayPreset: (id: string) => void;
+
   resetAll: () => void;
 
   setEngine: (s: Partial<Pick<EditorState, "engineReady" | "engineLoading" | "engineError">>) => void;
@@ -47,6 +58,8 @@ export const useEditor = create<EditorState>((set, get) => ({
   globalBorders: { ...DEFAULT_BORDERS },
   globalTitle: { ...DEFAULT_TITLE },
   globalLower: { ...DEFAULT_LOWER },
+  overlay: { ...DEFAULT_OVERLAY },
+  overlayPresets: [],
   editMode: "batch",
   engineReady: false,
   engineLoading: false,
@@ -126,11 +139,31 @@ export const useEditor = create<EditorState>((set, get) => ({
       ),
     })),
 
+  updateOverlay: (patch) => set((s) => ({ overlay: { ...s.overlay, ...patch } })),
+
+  addOverlayPreset: (name, src) =>
+    set((s) =>
+      s.overlayPresets.length >= MAX_OVERLAY_PRESETS
+        ? s
+        : { overlayPresets: [...s.overlayPresets, { id: uid(), name, src }] },
+    ),
+
+  removeOverlayPreset: (id) =>
+    set((s) => ({ overlayPresets: s.overlayPresets.filter((p) => p.id !== id) })),
+
+  applyOverlayPreset: (id) =>
+    set((s) => {
+      const p = s.overlayPresets.find((x) => x.id === id);
+      if (!p) return s;
+      return { overlay: { ...s.overlay, enabled: true, src: p.src, name: p.name } };
+    }),
+
   resetAll: () =>
     set((s) => ({
       globalBorders: { ...DEFAULT_BORDERS },
       globalTitle: { ...DEFAULT_TITLE },
       globalLower: { ...DEFAULT_LOWER },
+      overlay: { ...DEFAULT_OVERLAY },
       items: s.items.map((i) => ({ ...i, borders: null, titleOverride: undefined })),
     })),
 

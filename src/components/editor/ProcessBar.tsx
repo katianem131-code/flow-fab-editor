@@ -9,6 +9,7 @@ export function ProcessBar() {
   const globalBorders = useEditor((s) => s.globalBorders);
   const globalTitle = useEditor((s) => s.globalTitle);
   const globalLower = useEditor((s) => s.globalLower);
+  const overlay = useEditor((s) => s.overlay);
   const engineLoading = useEditor((s) => s.engineLoading);
   const setEngine = useEditor((s) => s.setEngine);
   const setItemStatus = useEditor((s) => s.setItemStatus);
@@ -47,6 +48,8 @@ export function ProcessBar() {
             lower: globalLower.enabled
               ? { settings: globalLower, text: globalLower.text }
               : undefined,
+            overlay:
+              overlay.enabled && overlay.src ? overlay : undefined,
             onProgress: (p) => {
               setItemProgress(it.id, p);
               setGlobalProgress((idx + p) / pending.length);
