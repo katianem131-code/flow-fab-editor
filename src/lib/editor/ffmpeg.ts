@@ -1,6 +1,6 @@
 import { FFmpeg } from "@ffmpeg/ffmpeg";
 import { fetchFile, toBlobURL } from "@ffmpeg/util";
-import { ASPECT_DIMS, BorderSettings, TextOverlaySettings } from "./types";
+import { ASPECT_DIMS, BorderSettings, OverlaySettings, TextOverlaySettings } from "./types";
 
 let instance: FFmpeg | null = null;
 let loading: Promise<FFmpeg> | null = null;
@@ -131,6 +131,7 @@ export interface ProcessOptions {
   borders: BorderSettings;
   title?: { settings: TextOverlaySettings; text: string };
   lower?: { settings: TextOverlaySettings; text: string };
+  overlay?: OverlaySettings;
   onProgress?: (p: number) => void;
   signal?: AbortSignal;
 }
@@ -154,6 +155,11 @@ export async function processVideo(
   }
   const filter = filters.join(",");
 
+  const ov = opts.overlay;
+  const useOverlay = !!(ov && ov.enabled && ov.src);
+  const overlayName = "ovl_" + Math.random().toString(36).slice(2, 8) + ".png";
+  const { w: FW, h: FH } = ASPECT_DIMS[opts.borders.aspect];
+
   const onProg = ({ progress }: { progress: number }) => {
     opts.onProgress?.(Math.max(0, Math.min(1, progress)));
   };
@@ -161,11 +167,30 @@ export async function processVideo(
 
   try {
     await ff.writeFile(inputName, await fetchFile(file));
+
+    const args: string[] = ["-i", inputName];
+    if (useOverlay) {
+      await ff.writeFile(overlayName, await fetchFile(ov!.src!));
+      const ow = Math.max(2, Math.round((ov!.scale / 100) * FW));
+      const opacity = Math.max(0, Math.min(1, ov!.opacity / 100)).toFixed(3);
+      const x = `(${Math.round((ov!.posX / 100) * FW)}-overlay_w/2)`;
+      const y = `(${Math.round((ov!.posY / 100) * FH)}-overlay_h/2)`;
+      args.push(
+        "-i",
+        overlayName,
+        "-filter_complex",
+        `[0:v]${filter}[base];[1:v]scale=${ow}:-1,format=rgba,colorchannelmixer=aa=${opacity}[ovl];[base][ovl]overlay=${x}:${y}:format=auto,format=yuv420p[v]`,
+        "-map",
+        "[v]",
+        "-map",
+        "0:a?",
+      );
+    } else {
+      args.push("-vf", filter);
+    }
+
     await ff.exec([
-      "-i",
-      inputName,
-      "-vf",
-      filter,
+      ...args,
       "-c:v",
       "libx264",
       "-preset",
@@ -187,6 +212,7 @@ export async function processVideo(
     try {
       await ff.deleteFile(inputName);
       await ff.deleteFile(outputName);
+      if (useOverlay) await ff.deleteFile(overlayName);
     } catch {
       /* noop */
     }

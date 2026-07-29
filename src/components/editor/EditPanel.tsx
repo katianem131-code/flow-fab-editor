@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useEditor } from "@/lib/editor/store";
 import { BordersTab } from "./BordersTab";
 import { TitleTab, LowerTab } from "./TextTabs";
+import { OverlayTab } from "./OverlayTab";
 import { RotateCw, Lock } from "lucide-react";
 
 type Tab = "bordas" | "titulo" | "inferior" | "overlay";
@@ -30,7 +31,7 @@ export function EditPanel() {
         <TabBtn active={tab === "bordas"} onClick={() => setTab("bordas")}>Bordas</TabBtn>
         <TabBtn active={tab === "titulo"} onClick={() => setTab("titulo")}>Título</TabBtn>
         <TabBtn active={tab === "inferior"} onClick={() => setTab("inferior")}>Inferior</TabBtn>
-        <TabBtn locked active={tab === "overlay"} onClick={() => setTab("overlay")}>Overlay</TabBtn>
+        <TabBtn active={tab === "overlay"} onClick={() => setTab("overlay")}>Overlay</TabBtn>
       </div>
 
       <div className="border-b border-border p-3">
@@ -68,7 +69,7 @@ export function EditPanel() {
         {tab === "bordas" && <BordersTab />}
         {tab === "titulo" && <TitleTab />}
         {tab === "inferior" && <LowerTab />}
-        {tab === "overlay" && <ComingSoon tab="overlay" />}
+        {tab === "overlay" && <OverlayTab />}
       </div>
     </div>
   );
