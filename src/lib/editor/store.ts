@@ -102,6 +102,10 @@ export const useEditor = create<EditorState>((set, get) => ({
   overlay: { ...DEFAULT_OVERLAY },
   overlayPresets: [],
   stylePresets: [],
+  hydratePresets: () => {
+    const data = loadPersisted();
+    set({ stylePresets: data.stylePresets, overlayPresets: data.overlayPresets });
+  },
   editMode: "batch",
   engineReady: false,
   engineLoading: false,
