@@ -124,3 +124,33 @@ export const ASPECT_DIMS: Record<AspectRatio, { w: number; h: number }> = {
 export const MAX_VIDEOS = 50;
 export const MAX_SIZE_MB = 100;
 export const MAX_DURATION_S = 180;
+
+export interface OverlaySettings {
+  enabled: boolean;
+  /** Object URL / data URL of the overlay image */
+  src: string | null;
+  name: string | null;
+  /** Width as % of frame width */
+  scale: number;
+  posX: number;
+  posY: number;
+  opacity: number;
+}
+
+export const DEFAULT_OVERLAY: OverlaySettings = {
+  enabled: false,
+  src: null,
+  name: null,
+  scale: 40,
+  posX: 50,
+  posY: 12,
+  opacity: 100,
+};
+
+export interface OverlayPreset {
+  id: string;
+  name: string;
+  src: string;
+}
+
+export const MAX_OVERLAY_PRESETS = 5;
