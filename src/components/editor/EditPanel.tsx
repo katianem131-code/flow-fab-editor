@@ -19,6 +19,8 @@ export function EditPanel() {
 
   return (
     <div className="flex h-full flex-col overflow-hidden">
+      <PresetsBar />
+
       <div className="border-b border-border p-3">
         <button
           onClick={resetAll}
@@ -27,6 +29,7 @@ export function EditPanel() {
           <RotateCw className="h-3 w-3" /> Resetar todas as edições
         </button>
       </div>
+
 
       <div className="grid grid-cols-4 gap-1 border-b border-border p-2">
         <TabBtn active={tab === "bordas"} onClick={() => setTab("bordas")}>Bordas</TabBtn>
