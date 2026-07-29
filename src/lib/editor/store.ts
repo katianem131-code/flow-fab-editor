@@ -55,6 +55,7 @@ interface EditorState {
   globalLower: TextOverlaySettings;
   overlay: OverlaySettings;
   overlayPresets: OverlayPreset[];
+  stylePresets: StylePreset[];
   editMode: "batch" | "single";
   engineReady: boolean;
   engineLoading: boolean;
