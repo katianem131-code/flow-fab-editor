@@ -81,6 +81,7 @@ interface EditorState {
   applyStylePreset: (id: string) => void;
   removeStylePreset: (id: string) => void;
   renameStylePreset: (id: string, name: string) => void;
+  hydratePresets: () => void;
 
   resetAll: () => void;
 
