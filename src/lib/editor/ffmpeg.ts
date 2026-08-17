@@ -226,3 +226,31 @@ function getExt(name: string) {
   const i = name.lastIndexOf(".");
   return i >= 0 ? name.slice(i) : ".mp4";
 }
+
+/** Extract a mono 16kHz mp3 audio track — small enough for speech-to-text APIs. */
+export async function extractAudio(file: File): Promise<Blob> {
+  const ff = await getFFmpeg();
+  const input = `sttin${getExt(file.name)}`;
+  const output = "stt.mp3";
+  await ff.writeFile(input, await fetchFile(file));
+  try {
+    await ff.exec([
+      "-i",
+      input,
+      "-vn",
+      "-ac",
+      "1",
+      "-ar",
+      "16000",
+      "-b:a",
+      "64k",
+      output,
+    ]);
+    const data = (await ff.readFile(output)) as Uint8Array;
+    return new Blob([data.slice().buffer as ArrayBuffer], { type: "audio/mpeg" });
+  } finally {
+    await ff.deleteFile(input).catch(() => {});
+    await ff.deleteFile(output).catch(() => {});
+  }
+}
+
