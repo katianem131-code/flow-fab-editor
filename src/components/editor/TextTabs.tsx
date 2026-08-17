@@ -1,3 +1,4 @@
+import { AITitleTools } from "./AITitleTools";
 import { useEditor } from "@/lib/editor/store";
 import { POSITION_PRESETS, TextOverlaySettings, TextPosition } from "@/lib/editor/types";
 import { ArrowUp, ArrowDown, ArrowLeft, ArrowRight, Dot } from "lucide-react";
