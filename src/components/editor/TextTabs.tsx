@@ -240,7 +240,10 @@ export function TitleTab() {
         </div>
       </div>
 
+      <AITitleTools />
+
       <textarea
+
         value={t.lines}
         onChange={(e) => update({ lines: e.target.value })}
         placeholder="esse video fica mais tenso a cada segundo&#10;eu nao esperava por esse final"
