@@ -18,12 +18,19 @@ export function Header() {
         </Link>
         <nav className="flex items-center gap-2 text-sm">
           <Link
+            to="/admin"
+            className="rounded-md border border-border px-3 py-1.5 text-xs font-medium text-muted-foreground hover:text-foreground"
+          >
+            Admin
+          </Link>
+          <Link
             to="/editor"
             className="rounded-md bg-primary px-3 py-1.5 text-xs font-semibold text-primary-foreground hover:opacity-90"
           >
             Abrir editor
           </Link>
         </nav>
+
       </div>
     </header>
   );
