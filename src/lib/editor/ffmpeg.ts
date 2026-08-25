@@ -1,6 +1,7 @@
 import { FFmpeg } from "@ffmpeg/ffmpeg";
 import { fetchFile, toBlobURL } from "@ffmpeg/util";
 import { ASPECT_DIMS, BorderSettings, OverlaySettings, TextOverlaySettings } from "./types";
+import wasmAsset from "@/assets/ffmpeg-core.wasm.asset.json";
 
 let instance: FFmpeg | null = null;
 let loading: Promise<FFmpeg> | null = null;
