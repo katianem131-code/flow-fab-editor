@@ -9,24 +9,15 @@ let loading: Promise<FFmpeg> | null = null;
 // Core é servido pelo próprio app (mesma origem) — CDNs externos podem ser
 // bloqueadas pelo navegador/rede e quebram o carregamento do engine.
 const CORE_JS_URL = "/ffmpeg/ffmpeg-core.js";
-const FONT_URL = "https://fonts.gstatic.com/s/inter/v13/UcC73FwrK3iLTeHuS_fvQtMwCp50KnMa1ZL7.woff2";
-// Use a TTF for drawtext — Inter TTF from jsDelivr mirror.
-const FONT_TTF_URL = "https://cdn.jsdelivr.net/npm/@fontsource/inter@5.0.16/files/inter-latin-700-normal.woff";
-// Actually drawtext requires TTF/OTF. Use a reliable TTF: DejaVu Sans Bold from a CDN.
-const FONT_TTF = "https://cdn.jsdelivr.net/gh/mozilla/pdf.js@v4.0.379/external/bcmaps/../../test/pdfs/basicapi_test.pdf";
-// Simpler: use Google Fonts direct TTF for Inter (via github mirror).
-const INTER_TTF = "https://raw.githubusercontent.com/rsms/inter/master/docs/font-files/Inter-Bold.ttf";
-
-void FONT_URL;
-void FONT_TTF_URL;
-void FONT_TTF;
+// Fonte TTF servida pelo próprio app (drawtext exige TTF/OTF).
+const FONT_TTF_URL = "/ffmpeg/font.ttf";
 
 let fontLoaded = false;
 
 async function ensureFont(ff: FFmpeg) {
   if (fontLoaded) return;
   try {
-    const data = await fetchFile(INTER_TTF);
+    const data = await fetchFile(FONT_TTF_URL);
     await ff.writeFile("font.ttf", data);
     fontLoaded = true;
   } catch (e) {
