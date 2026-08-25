@@ -40,10 +40,18 @@ export async function getFFmpeg(onLog?: (m: string) => void): Promise<FFmpeg> {
   loading = (async () => {
     const ff = new FFmpeg();
     if (onLog) ff.on("log", ({ message }) => onLog(message));
-    await ff.load({
-      coreURL: await toBlobURL(`${CORE_BASE}/ffmpeg-core.js`, "text/javascript"),
-      wasmURL: await toBlobURL(`${CORE_BASE}/ffmpeg-core.wasm`, "application/wasm"),
-    });
+    try {
+      await ff.load({
+        coreURL: await toBlobURL(coreURL, "text/javascript"),
+        wasmURL: await toBlobURL(wasmURL, "application/wasm"),
+      });
+    } catch (e) {
+      loading = null;
+      throw new Error(
+        "Não foi possível carregar o engine de vídeo. Recarregue a página e tente novamente." +
+          (e instanceof Error ? ` (${e.message})` : ""),
+      );
+    }
     await ensureFont(ff);
     instance = ff;
     return ff;
