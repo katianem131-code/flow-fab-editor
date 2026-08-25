@@ -41,8 +41,8 @@ export async function getFFmpeg(onLog?: (m: string) => void): Promise<FFmpeg> {
     if (onLog) ff.on("log", ({ message }) => onLog(message));
     try {
       await ff.load({
-        coreURL: await toBlobURL(coreURL, "text/javascript"),
-        wasmURL: await toBlobURL(wasmURL, "application/wasm"),
+        coreURL: await toBlobURL(CORE_JS_URL, "text/javascript"),
+        wasmURL: wasmAsset.url,
       });
     } catch (e) {
       loading = null;
