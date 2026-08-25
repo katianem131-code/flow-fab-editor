@@ -7,8 +7,9 @@ let loading: Promise<FFmpeg> | null = null;
 
 // Core é servido pelo próprio app (mesma origem) — CDNs externos podem ser
 // bloqueadas pelo navegador/rede e quebram o carregamento do engine.
-import coreURL from "@ffmpeg/core/dist/umd/ffmpeg-core.js?url";
-import wasmURL from "@ffmpeg/core/dist/umd/ffmpeg-core.wasm?url";
+import coreURL from "@/assets/ffmpeg-core.js?url";
+import wasmAsset from "@/assets/ffmpeg-core.wasm.asset.json";
+const wasmURL = wasmAsset.url;
 const FONT_URL = "https://fonts.gstatic.com/s/inter/v13/UcC73FwrK3iLTeHuS_fvQtMwCp50KnMa1ZL7.woff2";
 // Use a TTF for drawtext — Inter TTF from jsDelivr mirror.
 const FONT_TTF_URL = "https://cdn.jsdelivr.net/npm/@fontsource/inter@5.0.16/files/inter-latin-700-normal.woff";
