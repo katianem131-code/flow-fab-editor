@@ -1,6 +1,7 @@
 import { useEditor, effectiveBorders } from "@/lib/editor/store";
 import { AspectRatio, BorderSettings, DEFAULT_BORDERS } from "@/lib/editor/types";
 import { RotateCcw } from "lucide-react";
+import { TemplatesGallery } from "./TemplatesGallery";
 
 const ASPECTS: { v: AspectRatio; label: string }[] = [
   { v: "9:16", label: "9:16" },
@@ -33,6 +34,7 @@ export function BordersTab() {
 
   return (
     <div className="flex flex-col gap-4 p-4">
+      <TemplatesGallery />
       <div className="flex items-center justify-between">
         <div>
           <h3 className="text-sm font-semibold">Bordas</h3>

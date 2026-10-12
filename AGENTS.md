@@ -8,3 +8,5 @@
 > Commits you push to the connected branch sync back to Lovable and show up in
 > the editor, so keep the branch in a working state.
 <!-- LOVABLE:END -->
+
+- Built-in framing templates are defined in `src/lib/editor/templates.ts` and applied atomically through the editor store; this keeps thumbnails, batch/single scope, and exported framing on the same settings without replacing text or overlays.
