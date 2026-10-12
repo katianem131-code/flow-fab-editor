@@ -1,2 +1,2 @@
 - [x] Add one-click framing presets and a visual gallery in the Borders tab.
-- [ ] Verify batch/individual application and the live editor flow.
+- [x] Verify batch/individual application and the live editor flow.
