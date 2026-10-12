@@ -1,4 +1,5 @@
 import { create } from "zustand";
+import { VIDEO_TEMPLATES } from "./templates";
 import {
   BorderSettings,
   DEFAULT_BORDERS,
@@ -67,6 +68,7 @@ interface EditorState {
   select: (id: string) => void;
 
   setEditMode: (mode: "batch" | "single") => void;
+  applyFramingTemplate: (id: string) => void;
   updateGlobalBorders: (patch: Partial<BorderSettings>) => void;
   updateItemBorders: (id: string, patch: Partial<BorderSettings>) => void;
   updateGlobalTitle: (patch: Partial<TextOverlaySettings>) => void;
@@ -159,6 +161,20 @@ export const useEditor = create<EditorState>((set, get) => ({
   select: (id) => set({ selectedId: id }),
 
   setEditMode: (mode) => set({ editMode: mode }),
+
+  applyFramingTemplate: (id) =>
+    set((s) => {
+      const template = VIDEO_TEMPLATES.find((t) => t.id === id);
+      if (!template) return s;
+      if (s.editMode === "single") {
+        if (!s.items.some((i) => i.id === s.selectedId)) return s;
+        return { items: s.items.map((i) => i.id === s.selectedId ? { ...i, borders: { ...template.borders } } : i) };
+      }
+      return {
+        globalBorders: { ...template.borders },
+        items: s.items.map((i) => ({ ...i, borders: null })),
+      };
+    }),
 
   updateGlobalBorders: (patch) =>
     set((s) => ({ globalBorders: { ...s.globalBorders, ...patch } })),

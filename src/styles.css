@@ -32,6 +32,9 @@
   --color-ring: var(--ring);
   --color-surface: var(--surface);
   --color-surface-2: var(--surface-2);
+  --color-template-paper: var(--template-paper);
+  --color-template-ink: var(--template-ink);
+  --color-template-headline: var(--template-headline);
 }
 
 /* LabRemix — dark by default. Azul Escuro #14213D bg, Ciano #00E5FF primary,
@@ -61,7 +64,14 @@
   --border: oklch(1 0 0 / 12%);
   --input: oklch(1 0 0 / 12%);
   --ring: oklch(0.86 0.16 210);
+  --template-paper: oklch(1 0 0);
+  --template-ink: oklch(0.226 0.062 267);
+  --template-headline: oklch(0.82 0.16 97);
 }
+
+.template-mini--light { background: var(--template-paper); }
+.template-mini--dark { background: var(--template-ink); }
+.template-mini--yellow { background: var(--template-headline); }
 
 .dark {
   /* same as :root — app is always dark */
