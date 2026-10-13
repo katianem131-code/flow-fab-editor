@@ -1,26 +1,23 @@
 import { useEffect, useState } from "react";
 import { ChevronDown, Fingerprint } from "lucide-react";
 import { antiDupLevel, useAntiDup } from "@/lib/editor/antidup";
+import { CUSTOM_SPEED, clampSpeed, formatSpeed, SPEED_PRESETS } from "@/lib/editor/speeds";
 
-const SPEEDS = [
-  { v: 0.9, label: "0,90× (mais lento)" },
-  { v: 0.95, label: "0,95×" },
-  { v: 1, label: "normal" },
-  { v: 1.05, label: "1,05×" },
-  { v: 1.1, label: "1,10× (mais rápido)" },
-];
 
 export function AntiDupPanel() {
   const s = useAntiDup((x) => x.antiDup);
   const update = useAntiDup((x) => x.updateAntiDup);
   const hydrate = useAntiDup((x) => x.hydrateAntiDup);
   const [open, setOpen] = useState(true);
+  const [customMode, setCustomMode] = useState(false);
   useEffect(() => hydrate(), [hydrate]);
 
+  const isCustom = !SPEED_PRESETS.some((o) => o.v === s.speed);
   const level = antiDupLevel(s);
   const summary = [
     s.mirror ? "espelhado" : "sem espelho",
-    `${s.speed.toFixed(2)}×`,
+    formatSpeed(s.speed),
+
     `corta ${s.trimStart} s / ${s.trimEnd} s`,
     s.stripMetadata ? "metadados limpos" : "metadados mantidos",
   ].join(" · ");
@@ -46,18 +43,34 @@ export function AntiDupPanel() {
             <p className="text-[10px] text-muted-foreground">{summary}</p>
             <Toggle label="Espelhar (esquerda vira direita)" checked={s.mirror} onChange={(v) => update({ mirror: v })} />
             <Toggle label="Limpar metadados do arquivo" checked={s.stripMetadata} onChange={(v) => update({ stripMetadata: v })} />
-            <label className="flex items-center justify-between gap-2 text-xs">
-              <span className="font-medium">Velocidade</span>
-              <select
-                value={s.speed}
-                onChange={(e) => update({ speed: Number(e.target.value) })}
-                className="rounded-md border border-border bg-surface px-2 py-1 text-xs"
-              >
-                {SPEEDS.map((o) => (
-                  <option key={o.v} value={o.v}>{o.label}</option>
-                ))}
-              </select>
-            </label>
+            <div className="flex flex-col gap-1">
+              <label className="flex items-center justify-between gap-2 text-xs">
+                <span className="font-medium">Velocidade</span>
+                <select
+                  value={customMode || isCustom ? CUSTOM_SPEED : s.speed}
+                  onChange={(e) => {
+                    if (e.target.value === CUSTOM_SPEED) {
+                      setCustomMode(true);
+                      return;
+                    }
+                    setCustomMode(false);
+                    update({ speed: Number(e.target.value) });
+                  }}
+                  className="rounded-md border border-border bg-surface px-2 py-1 text-xs"
+                >
+                  {SPEED_PRESETS.map((o) => (
+                    <option key={o.v} value={o.v}>{o.label}</option>
+                  ))}
+                  <option value={CUSTOM_SPEED}>
+                    {customMode || isCustom ? `Outros (${formatSpeed(s.speed)})` : "Outros…"}
+                  </option>
+                </select>
+              </label>
+              {(customMode || isCustom) && (
+                <CustomSpeedInput value={s.speed} onChange={(v) => update({ speed: v })} />
+              )}
+            </div>
+
             <div>
               <div className="mb-1 text-xs font-medium">Cortar pontas</div>
               <div className="grid grid-cols-2 gap-2">
@@ -78,7 +91,41 @@ export function AntiDupPanel() {
   );
 }
 
+function CustomSpeedInput({ value, onChange }: { value: number; onChange: (v: number) => void }) {
+  const [text, setText] = useState(() => formatSpeed(value).slice(0, -1));
+  const commit = (raw: string) => {
+    const n = Number(raw.replace(",", "."));
+    if (Number.isFinite(n) && n > 0) onChange(clampSpeed(n));
+  };
+  return (
+    <label className="flex items-center justify-between gap-2 text-xs">
+      <span className="text-muted-foreground">Outro valor (0,50–2,00)</span>
+      <input
+        type="text"
+        inputMode="decimal"
+        value={text}
+        onChange={(e) => {
+          setText(e.target.value);
+          commit(e.target.value);
+        }}
+        onBlur={() => {
+          const n = Number(text.replace(",", "."));
+          if (!Number.isFinite(n) || n <= 0) {
+            setText(formatSpeed(value).slice(0, -1));
+            return;
+          }
+          const clamped = clampSpeed(n);
+          onChange(clamped);
+          setText(formatSpeed(clamped).slice(0, -1));
+        }}
+        className="w-20 rounded-md border border-border bg-surface px-2 py-1 text-xs text-foreground"
+      />
+    </label>
+  );
+}
+
 function Toggle({ label, checked, onChange }: { label: string; checked: boolean; onChange: (v: boolean) => void }) {
+
   return (
     <label className="flex cursor-pointer items-center gap-2 text-xs">
       <input type="checkbox" checked={checked} onChange={(e) => onChange(e.target.checked)} className="h-4 w-4 accent-[color:var(--primary)]" />
