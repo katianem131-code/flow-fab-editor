@@ -1,14 +1,8 @@
 import { useEffect, useState } from "react";
 import { ChevronDown, Fingerprint } from "lucide-react";
 import { antiDupLevel, useAntiDup } from "@/lib/editor/antidup";
+import { CUSTOM_SPEED, clampSpeed, formatSpeed, SPEED_PRESETS } from "@/lib/editor/speeds";
 
-const SPEEDS = [
-  { v: 0.9, label: "0,90× (mais lento)" },
-  { v: 0.95, label: "0,95×" },
-  { v: 1, label: "normal" },
-  { v: 1.05, label: "1,05×" },
-  { v: 1.1, label: "1,10× (mais rápido)" },
-];
 
 export function AntiDupPanel() {
   const s = useAntiDup((x) => x.antiDup);
