@@ -2,6 +2,7 @@ import { FFmpeg } from "@ffmpeg/ffmpeg";
 import { fetchFile, toBlobURL } from "@ffmpeg/util";
 import { ASPECT_DIMS, BorderSettings, OverlaySettings, TextOverlaySettings } from "./types";
 import wasmAsset from "@/assets/ffmpeg-core.wasm.asset.json";
+import type { AntiDupSettings } from "./antidup";
 
 let instance: FFmpeg | null = null;
 let loading: Promise<FFmpeg> | null = null;
@@ -134,6 +135,9 @@ export interface ProcessOptions {
   title?: { settings: TextOverlaySettings; text: string };
   lower?: { settings: TextOverlaySettings; text: string };
   overlay?: OverlaySettings;
+  antiDup?: AntiDupSettings;
+  /** Source duration in seconds (needed to trim the end). */
+  duration?: number;
   onProgress?: (p: number) => void;
   signal?: AbortSignal;
 }
@@ -146,7 +150,13 @@ export async function processVideo(
   const inputName = "in_" + Math.random().toString(36).slice(2, 8) + getExt(file.name);
   const outputName = "out_" + Math.random().toString(36).slice(2, 8) + ".mp4";
 
-  const filters = [buildBorderFilter(opts.borders)];
+  const ad = opts.antiDup?.enabled ? opts.antiDup : undefined;
+  const speed = ad ? Math.max(0.5, Math.min(2, ad.speed)) : 1;
+  const pre: string[] = [];
+  if (ad?.mirror) pre.push("hflip");
+  if (speed !== 1) pre.push(`setpts=PTS/${speed.toFixed(3)}`);
+
+  const filters = [...pre, buildBorderFilter(opts.borders)];
   if (opts.title) {
     const f = buildTextFilter(opts.title.settings, opts.title.text, opts.borders.aspect);
     if (f) filters.push(f);
@@ -170,7 +180,15 @@ export async function processVideo(
   try {
     await ff.writeFile(inputName, await fetchFile(file));
 
-    const args: string[] = ["-i", inputName];
+    const args: string[] = [];
+    if (ad) {
+      const start = Math.max(0, ad.trimStart);
+      const end = Math.max(0, ad.trimEnd);
+      const dur = opts.duration ?? 0;
+      if (start > 0) args.push("-ss", start.toFixed(2));
+      if (dur > 0 && dur - start - end > 0.5) args.push("-t", (dur - start - end).toFixed(2));
+    }
+    args.push("-i", inputName);
     if (useOverlay) {
       await ff.writeFile(overlayName, await fetchFile(ov!.src!));
       const ow = Math.max(2, Math.round((ov!.scale / 100) * FW));
@@ -189,6 +207,18 @@ export async function processVideo(
       );
     } else {
       args.push("-vf", filter);
+    }
+    if (speed !== 1) args.push("-af", `atempo=${speed.toFixed(3)}`);
+    if (ad?.stripMetadata) {
+      args.push(
+        "-map_metadata", "-1",
+        "-map_chapters", "-1",
+        "-fflags", "+bitexact",
+        "-flags:v", "+bitexact",
+        "-flags:a", "+bitexact",
+        "-metadata", "creation_time=",
+        "-metadata", "encoder=",
+      );
     }
 
     await ff.exec([

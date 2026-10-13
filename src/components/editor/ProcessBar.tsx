@@ -40,7 +40,12 @@ export function ProcessBar() {
         setItemStatus(it.id, "processing", { progress: 0 });
         try {
           const originalIndex = items.findIndex((x) => x.id === it.id);
+          const { useAntiDup, getVideoDuration } = await import("@/lib/editor/antidup");
+          const antiDup = useAntiDup.getState().antiDup;
+          const duration = antiDup.enabled ? await getVideoDuration(it.file) : 0;
           const blob = await processVideo(it.file, {
+            antiDup,
+            duration,
             borders: effectiveBorders(it, globalBorders),
             title: globalTitle.enabled
               ? { settings: globalTitle, text: titleTextForItem(it, originalIndex, globalTitle) }
