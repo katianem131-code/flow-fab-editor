@@ -52,6 +52,7 @@ export function LinkImportDialog({ open, onClose }: { open: boolean; onClose: ()
       } else if (l.platform !== "unknown") pending++;
     }
     if (files.length) addFiles(files);
+    setHistory(pushHistory({ kind: "links", label: `${links.length} link(s)`, count: files.length }));
     setBusy(false);
     setMsg(
       `${files.length} vídeo(s) adicionado(s).` +
@@ -72,6 +73,7 @@ export function LinkImportDialog({ open, onClose }: { open: boolean; onClose: ()
       url: `https://www.${network}.com/${name}/${i}`,
     }));
     setFound(list);
+    setHistory(pushHistory({ kind: "profile", label: `@${name} (${network})`, count: list.length }));
     setPicked(new Set(list.map((f) => f.id)));
     setMsg("Modo demonstração: conecte um serviço de extração no Admin para buscar vídeos reais.");
   };
