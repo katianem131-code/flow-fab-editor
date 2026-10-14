@@ -5,6 +5,59 @@ import { Lock, KeyRound, ShieldCheck, Loader2, Unlock } from "lucide-react";
 import { Header } from "@/components/editor/Header";
 import { useAI, AIProvider, PROVIDER_DEFAULTS } from "@/lib/ai/settings";
 import { testConnection } from "@/lib/ai/client";
+import {
+  loadImportSettings,
+  saveImportSettings,
+  PROVIDER_LABEL,
+  type ImportProvider,
+  type ImportSettings,
+} from "@/lib/editor/importSettings";
+
+function ImportServiceSettings() {
+  const [s, setS] = useState<ImportSettings>({ provider: "demo", apiKey: "", endpoint: "" });
+  useEffect(() => setS(loadImportSettings()), []);
+  const field = "w-full rounded-md border border-border bg-background px-2 py-1.5 text-xs focus:border-primary focus:outline-none";
+  return (
+    <section className="rounded-xl border border-border bg-surface/60 p-5">
+      <h2 className="mb-1 text-sm font-semibold">Importação por link / perfil</h2>
+      <p className="mb-4 text-[11px] text-muted-foreground">
+        Serviço usado para baixar vídeos do Instagram, TikTok e YouTube.
+      </p>
+      <div className="space-y-3">
+        <label className="block text-[11px]">
+          Serviço
+          <select
+            className={field}
+            value={s.provider}
+            onChange={(e) => setS({ ...s, provider: e.target.value as ImportProvider })}
+          >
+            {(Object.keys(PROVIDER_LABEL) as ImportProvider[]).map((p) => (
+              <option key={p} value={p}>{PROVIDER_LABEL[p]}</option>
+            ))}
+          </select>
+        </label>
+        {s.provider !== "demo" && (
+          <>
+            <label className="block text-[11px]">
+              Chave de acesso
+              <input type="password" className={field} value={s.apiKey} onChange={(e) => setS({ ...s, apiKey: e.target.value })} />
+            </label>
+            <label className="block text-[11px]">
+              Endereço do serviço (opcional)
+              <input className={field} placeholder="https://..." value={s.endpoint} onChange={(e) => setS({ ...s, endpoint: e.target.value })} />
+            </label>
+          </>
+        )}
+        <button
+          onClick={() => { saveImportSettings(s); toast.success("Configuração de importação salva"); }}
+          className="rounded-md bg-primary px-3 py-2 text-xs font-semibold text-primary-foreground"
+        >
+          Salvar
+        </button>
+      </div>
+    </section>
+  );
+}
 
 export const Route = createFileRoute("/admin")({
   head: () => ({
@@ -44,7 +97,14 @@ function AdminPage() {
         <p className="mb-6 text-xs text-muted-foreground">
           Configure APIs externas de IA. As chaves ficam salvas apenas neste navegador.
         </p>
-        {!hydrated ? null : isAdmin ? <AISettings /> : <Gate />}
+        {!hydrated ? null : isAdmin ? (
+          <div className="space-y-6">
+            <AISettings />
+            <ImportServiceSettings />
+          </div>
+        ) : (
+          <Gate />
+        )}
       </main>
       <Toaster theme="dark" richColors position="top-center" />
     </div>
