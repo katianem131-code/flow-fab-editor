@@ -1,5 +1,13 @@
-import { useMemo, useState } from "react";
-import { Link2, X, Loader2, User, Check } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
+import { Link2, X, Loader2, User, Check, History } from "lucide-react";
+import {
+  useImportSettings,
+  loadHistory,
+  pushHistory,
+  clearHistory,
+  PROVIDER_LABEL,
+  type ImportHistoryEntry,
+} from "@/lib/editor/importSettings";
 import { useEditor } from "@/lib/editor/store";
 import {
   parseLinks,
@@ -24,6 +32,9 @@ export function LinkImportDialog({ open, onClose }: { open: boolean; onClose: ()
   const [picked, setPicked] = useState<Set<string>>(new Set());
 
   const links = useMemo(() => parseLinks(text), [text]);
+  const settings = useImportSettings();
+  const [history, setHistory] = useState<ImportHistoryEntry[]>([]);
+  useEffect(() => { if (open) setHistory(loadHistory()); }, [open]);
   if (!open) return null;
 
   const importLinks = async () => {
@@ -41,6 +52,7 @@ export function LinkImportDialog({ open, onClose }: { open: boolean; onClose: ()
       } else if (l.platform !== "unknown") pending++;
     }
     if (files.length) addFiles(files);
+    setHistory(pushHistory({ kind: "links", label: `${links.length} link(s)`, count: files.length }));
     setBusy(false);
     setMsg(
       `${files.length} vídeo(s) adicionado(s).` +
@@ -61,6 +73,7 @@ export function LinkImportDialog({ open, onClose }: { open: boolean; onClose: ()
       url: `https://www.${network}.com/${name}/${i}`,
     }));
     setFound(list);
+    setHistory(pushHistory({ kind: "profile", label: `@${name} (${network})`, count: list.length }));
     setPicked(new Set(list.map((f) => f.id)));
     setMsg("Modo demonstração: conecte um serviço de extração no Admin para buscar vídeos reais.");
   };
@@ -79,7 +92,10 @@ export function LinkImportDialog({ open, onClose }: { open: boolean; onClose: ()
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-center justify-between">
-          <h3 className="text-sm font-semibold">Importar por link ou perfil</h3>
+          <div>
+            <h3 className="text-sm font-semibold">Importar por link ou perfil</h3>
+            <p className="text-[10px] text-muted-foreground">Serviço: {PROVIDER_LABEL[settings.provider]}</p>
+          </div>
           <button onClick={onClose} aria-label="Fechar" className="text-muted-foreground hover:text-foreground">
             <X className="h-4 w-4" />
           </button>
@@ -187,6 +203,22 @@ export function LinkImportDialog({ open, onClose }: { open: boolean; onClose: ()
           </>
         )}
         {msg && <p className="text-[11px] text-muted-foreground">{msg}</p>}
+        {history.length > 0 && (
+          <div className="border-t border-border pt-2">
+            <div className="mb-1 flex items-center justify-between text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
+              <span className="inline-flex items-center gap-1"><History className="h-3 w-3" /> Histórico</span>
+              <button onClick={() => { clearHistory(); setHistory([]); }} className="normal-case hover:text-destructive">Limpar</button>
+            </div>
+            <ul className="max-h-24 space-y-0.5 overflow-y-auto text-[11px]">
+              {history.map((h) => (
+                <li key={h.id} className="flex justify-between gap-2 text-muted-foreground">
+                  <span className="truncate">{h.kind === "profile" ? "Perfil" : "Links"} · {h.label}</span>
+                  <span className="shrink-0">{h.count} · {new Date(h.at).toLocaleDateString("pt-BR")}</span>
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
       </div>
     </div>
   );
