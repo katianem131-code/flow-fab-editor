@@ -1,4 +1,5 @@
-import { useRef } from "react";
+import { useRef, useState } from "react";
+import { LinkImportButton, LinkImportDialog } from "./LinkImportDialog";
 import { Upload, Trash2, CheckCircle2, Loader2, AlertCircle } from "lucide-react";
 import { useEditor } from "@/lib/editor/store";
 import { MAX_VIDEOS, MAX_SIZE_MB, type AspectRatio, type BorderSettings } from "@/lib/editor/types";
@@ -61,6 +62,7 @@ export function VideoQueue() {
   const select = useEditor((s) => s.select);
   const updateGlobalBorders = useEditor((s) => s.updateGlobalBorders);
   const inputRef = useRef<HTMLInputElement>(null);
+  const [linkOpen, setLinkOpen] = useState(false);
 
   const readyCount = items.filter((i) => i.status === "done").length;
 
@@ -141,6 +143,9 @@ export function VideoQueue() {
           }}
         />
       </label>
+
+      <LinkImportButton onClick={() => setLinkOpen(true)} />
+      <LinkImportDialog open={linkOpen} onClose={() => setLinkOpen(false)} />
 
       <div className="flex items-center justify-between px-1 text-xs">
         <span className="text-muted-foreground">
