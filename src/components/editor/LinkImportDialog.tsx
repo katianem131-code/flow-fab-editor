@@ -13,6 +13,7 @@ import {
   parseLinks,
   normalizeUsername,
   fetchDirectVideo,
+  fetchSocialVideo,
   PLATFORM_LABEL,
 } from "@/lib/editor/linkImport";
 
@@ -41,25 +42,22 @@ export function LinkImportDialog({ open, onClose }: { open: boolean; onClose: ()
     setBusy(true);
     setMsg(null);
     const files: File[] = [];
-    let pending = 0;
+    const fails: string[] = [];
+    let i = 0;
     for (const l of links) {
-      if (l.platform === "direct") {
-        try {
-          files.push(await fetchDirectVideo(l.url));
-        } catch {
-          pending++;
-        }
-      } else if (l.platform !== "unknown") pending++;
+      i++;
+      if (l.platform === "unknown") continue;
+      setMsg(`Baixando ${i}/${links.length}…`);
+      try {
+        files.push(l.platform === "direct" ? await fetchDirectVideo(l.url) : await fetchSocialVideo(l.url));
+      } catch (e) {
+        fails.push(`${PLATFORM_LABEL[l.platform]}: ${e instanceof Error ? e.message : "falha"}`);
+      }
     }
     if (files.length) addFiles(files);
     setHistory(pushHistory({ kind: "links", label: `${links.length} link(s)`, count: files.length }));
     setBusy(false);
-    setMsg(
-      `${files.length} vídeo(s) adicionado(s).` +
-        (pending
-          ? ` ${pending} link(s) de rede social precisam de um serviço de extração configurado no Admin.`
-          : ""),
-    );
+    setMsg(`${files.length} vídeo(s) adicionado(s).` + (fails.length ? ` Falharam: ${fails.join(" · ")}` : ""));
   };
 
   const searchProfile = () => {

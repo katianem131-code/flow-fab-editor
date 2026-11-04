@@ -35,6 +35,22 @@ export const PLATFORM_LABEL: Record<Platform, string> = {
   unknown: "Inválido",
 };
 
+/** Baixa vídeo de Instagram/TikTok/YouTube pelo serviço Cobalt (via servidor do app). */
+export async function fetchSocialVideo(url: string): Promise<File> {
+  const res = await fetch("/api/public/social-video", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ url }),
+  });
+  if (!res.ok) {
+    const j = (await res.json().catch(() => null)) as { error?: string } | null;
+    throw new Error(j?.error ?? `Falha (${res.status})`);
+  }
+  const blob = await res.blob();
+  const name = res.headers.get("X-Filename") || "video.mp4";
+  return new File([blob], name, { type: blob.type || "video/mp4" });
+}
+
 /** Baixa um arquivo de vídeo direto (.mp4/.mov/.webm) que permita acesso. */
 export async function fetchDirectVideo(url: string): Promise<File> {
   const res = await fetch(url);
