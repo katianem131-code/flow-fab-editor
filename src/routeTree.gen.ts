@@ -12,6 +12,7 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AdminRouteImport } from './routes/admin'
 import { Route as EditorRouteImport } from './routes/editor'
+import { Route as ApiPublicSocialVideoRouteImport } from './routes/api/public/social-video'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -28,35 +29,44 @@ const EditorRoute = EditorRouteImport.update({
   path: '/editor',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiPublicSocialVideoRoute = ApiPublicSocialVideoRouteImport.update({
+  id: '/api/public/social-video',
+  path: '/api/public/social-video',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/admin': typeof AdminRoute
   '/editor': typeof EditorRoute
+  '/api/public/social-video': typeof ApiPublicSocialVideoRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/admin': typeof AdminRoute
   '/editor': typeof EditorRoute
+  '/api/public/social-video': typeof ApiPublicSocialVideoRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/admin': typeof AdminRoute
   '/editor': typeof EditorRoute
+  '/api/public/social-video': typeof ApiPublicSocialVideoRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/admin' | '/editor'
+  fullPaths: '/' | '/admin' | '/editor' | '/api/public/social-video'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/admin' | '/editor'
-  id: '__root__' | '/' | '/admin' | '/editor'
+  to: '/' | '/admin' | '/editor' | '/api/public/social-video'
+  id: '__root__' | '/' | '/admin' | '/editor' | '/api/public/social-video'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AdminRoute: typeof AdminRoute
   EditorRoute: typeof EditorRoute
+  ApiPublicSocialVideoRoute: typeof ApiPublicSocialVideoRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -82,6 +92,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof EditorRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/social-video': {
+      id: '/api/public/social-video'
+      path: '/api/public/social-video'
+      fullPath: '/api/public/social-video'
+      preLoaderRoute: typeof ApiPublicSocialVideoRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -89,6 +106,7 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AdminRoute: AdminRoute,
   EditorRoute: EditorRoute,
+  ApiPublicSocialVideoRoute: ApiPublicSocialVideoRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
