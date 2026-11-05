@@ -3,6 +3,7 @@ import { fetchFile, toBlobURL } from "@ffmpeg/util";
 import { ASPECT_DIMS, BorderSettings, OverlaySettings, TextOverlaySettings } from "./types";
 import wasmAsset from "@/assets/ffmpeg-core.wasm.asset.json";
 import type { AntiDupSettings } from "./antidup";
+import { EXPORT_ENCODER_ARGS, EXPORT_FPS_FILTER } from "./encoding";
 
 let instance: FFmpeg | null = null;
 let loading: Promise<FFmpeg> | null = null;
@@ -156,7 +157,7 @@ export async function processVideo(
   if (ad?.mirror) pre.push("hflip");
   if (speed !== 1) pre.push(`setpts=PTS/${speed.toFixed(3)}`);
 
-  const filters = [...pre, buildBorderFilter(opts.borders)];
+  const filters = [...pre, EXPORT_FPS_FILTER, buildBorderFilter(opts.borders)];
   if (opts.title) {
     const f = buildTextFilter(opts.title.settings, opts.title.text, opts.borders.aspect);
     if (f) filters.push(f);
@@ -225,8 +226,7 @@ export async function processVideo(
       ...args,
       "-c:v",
       "libx264",
-      "-preset",
-      "veryfast",
+      ...EXPORT_ENCODER_ARGS,
       "-crf",
       "23",
       "-c:a",
