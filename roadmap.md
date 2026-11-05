@@ -1,3 +1,3 @@
 - [x] Add one-click framing presets and a visual gallery in the Borders tab.
 - [x] Verify batch/individual application and the live editor flow.
-- [ ] Apply and verify faster encoding and 30 fps export.
+- [x] Apply and verify faster encoding and 30 fps export.
