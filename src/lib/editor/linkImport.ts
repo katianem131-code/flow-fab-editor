@@ -42,7 +42,7 @@ export async function fetchSocialVideo(url: string): Promise<File> {
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ url }),
   });
-  if (!res.ok) {
+  if (!res.ok || res.headers.get("X-Import-Error")) {
     const j = (await res.json().catch(() => null)) as { error?: string } | null;
     throw new Error(j?.error ?? `Falha (${res.status})`);
   }

@@ -14,11 +14,27 @@ export const Route = createFileRoute("/api/public/social-video")({
   server: {
     handlers: {
       POST: async ({ request }) => {
+        try {
+          return await handle(request);
+        } catch (e) {
+          return fail(`Serviço de download indisponível (${e instanceof Error ? e.message : "erro"})`);
+        }
+      },
+    },
+  },
+});
+
+// Falhas voltam com status 200 + JSON { error } para não serem tratadas como queda do app.
+function fail(error: string) {
+  return Response.json({ error }, { headers: { "X-Import-Error": "1" } });
+}
+
+async function handle(request: Request): Promise<Response> {
         const body = (await request.json().catch(() => ({}))) as { url?: string };
         const url = String(body.url ?? "");
         const platform = detectPlatform(url);
         if (!["instagram", "tiktok", "youtube"].includes(platform)) {
-          return Response.json({ error: "Link não suportado" }, { status: 400 });
+          return fail("Link não suportado");
         }
         const res = await fetch(COBALT, {
           method: "POST",
@@ -30,14 +46,14 @@ export const Route = createFileRoute("/api/public/social-video")({
           | null;
         if (!j || j.status === "error") {
           const code = j?.error?.code ?? "";
-          return Response.json({ error: ERRORS[code] ?? `Falha no serviço (${code || res.status})` }, { status: 502 });
+          return fail(ERRORS[code] ?? `Falha no serviço (${code || res.status})`);
         }
         let media = j.url;
         if (j.status === "picker") media = j.picker?.find((p) => p.type === "video")?.url;
-        if (!media) return Response.json({ error: "Nenhum vídeo neste link" }, { status: 404 });
+        if (!media) return fail("Nenhum vídeo neste link");
         const file = await fetch(media);
         if (!file.ok || !file.body) {
-          return Response.json({ error: `Falha ao baixar (${file.status})` }, { status: 502 });
+          return fail(`Falha ao baixar (${file.status})`);
         }
         const name = (j.filename || `${platform}.mp4`).replace(/[^\w.\-]/g, "_");
         return new Response(file.body, {
@@ -46,7 +62,4 @@ export const Route = createFileRoute("/api/public/social-video")({
             "X-Filename": name,
           },
         });
-      },
-    },
-  },
-});
+}
