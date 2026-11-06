@@ -1,3 +1,4 @@
+import { MaskPreviewLayer } from "./MasksTab";
 import { useEffect, useRef, useState } from "react";
 import { Play, Pause, Download, Film } from "lucide-react";
 import { useEditor, effectiveBorders, titleTextForItem } from "@/lib/editor/store";
@@ -355,6 +356,7 @@ export function PreviewStage() {
         {/* Overlays de texto e imagem */}
         {item && (
           <>
+            <MaskPreviewLayer />
             <TextOverlay
               settings={title}
               text={titleTextForItem(item, itemIndex < 0 ? 0 : itemIndex, title)}

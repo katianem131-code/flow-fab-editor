@@ -1,3 +1,4 @@
+import { buildMaskFilter, useMasks } from "./masks";
 import { FFmpeg } from "@ffmpeg/ffmpeg";
 import { fetchFile, toBlobURL } from "@ffmpeg/util";
 import { ASPECT_DIMS, BorderSettings, OverlaySettings, TextOverlaySettings } from "./types";
@@ -169,6 +170,12 @@ export async function processVideo(
   if (speed !== 1) pre.push(`setpts=PTS/${speed.toFixed(3)}`);
 
   const filters = [...pre, EXPORT_FPS_FILTER, buildBorderFilter(opts.borders)];
+  {
+    const ms = useMasks.getState();
+    const { w: MW, h: MH } = ASPECT_DIMS[opts.borders.aspect];
+    const mf = ms.enabled ? buildMaskFilter(ms.masks, MW, MH) : "";
+    if (mf) filters.push(mf);
+  }
   if (opts.title) {
     const f = buildTextFilter(opts.title.settings, opts.title.text, opts.borders.aspect);
     if (f) filters.push(f);

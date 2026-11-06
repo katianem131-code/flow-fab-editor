@@ -4,9 +4,10 @@ import { BordersTab } from "./BordersTab";
 import { TitleTab, LowerTab } from "./TextTabs";
 import { OverlayTab } from "./OverlayTab";
 import { PresetsBar } from "./PresetsBar";
+import { MasksTab } from "./MasksTab";
 import { RotateCw, Lock } from "lucide-react";
 
-type Tab = "bordas" | "titulo" | "inferior" | "overlay";
+type Tab = "bordas" | "titulo" | "inferior" | "overlay" | "mascaras";
 
 export function EditPanel() {
   const [tab, setTab] = useState<Tab>("bordas");
@@ -31,11 +32,12 @@ export function EditPanel() {
       </div>
 
 
-      <div className="grid grid-cols-4 gap-1 border-b border-border p-2">
+      <div className="grid grid-cols-5 gap-1 border-b border-border p-2">
         <TabBtn active={tab === "bordas"} onClick={() => setTab("bordas")}>Bordas</TabBtn>
         <TabBtn active={tab === "titulo"} onClick={() => setTab("titulo")}>Título</TabBtn>
         <TabBtn active={tab === "inferior"} onClick={() => setTab("inferior")}>Inferior</TabBtn>
         <TabBtn active={tab === "overlay"} onClick={() => setTab("overlay")}>Overlay</TabBtn>
+        <TabBtn active={tab === "mascaras"} onClick={() => setTab("mascaras")}>Máscara</TabBtn>
       </div>
 
       <div className="border-b border-border p-3">
@@ -74,6 +76,7 @@ export function EditPanel() {
         {tab === "titulo" && <TitleTab />}
         {tab === "inferior" && <LowerTab />}
         {tab === "overlay" && <OverlayTab />}
+        {tab === "mascaras" && <MasksTab />}
       </div>
     </div>
   );
