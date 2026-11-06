@@ -96,27 +96,6 @@ export function PreviewStage() {
           containerType: "size",
         }}
       >
-        {/* Badges de anti-duplicidade em tempo real */}
-        {antiDup.enabled && (isMirrored || speed !== 1 || antiDup.stripMetadata) && (
-          <div className="pointer-events-none absolute left-2 top-2 z-20 flex flex-wrap gap-1">
-            {isMirrored && (
-              <span className="rounded bg-black/75 px-1.5 py-0.5 text-[9px] font-semibold text-primary backdrop-blur ring-1 ring-primary/40 shadow-sm">
-                ⮂ Espelhado
-              </span>
-            )}
-            {speed !== 1 && (
-              <span className="rounded bg-black/75 px-1.5 py-0.5 text-[9px] font-semibold text-emerald-400 backdrop-blur ring-1 ring-emerald-500/40 shadow-sm">
-                ⚡ {speed.toFixed(2).replace(".", ",")}×
-              </span>
-            )}
-            {antiDup.stripMetadata && (
-              <span className="rounded bg-black/75 px-1.5 py-0.5 text-[9px] font-semibold text-blue-300 backdrop-blur ring-1 ring-blue-500/40 shadow-sm">
-                🛡️ Metadados limpos
-              </span>
-            )}
-          </div>
-        )}
-
         {/* Área do vídeo — limitada pelas bordas do template */}
         <div
           className="absolute inset-0 overflow-hidden"
