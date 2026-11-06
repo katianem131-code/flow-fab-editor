@@ -51,6 +51,8 @@ function persist(data: PersistedShape) {
 interface EditorState {
   items: VideoItem[];
   selectedId: string | null;
+  batchId: string | null;
+  batchName: string;
   globalBorders: BorderSettings;
   globalTitle: TextOverlaySettings;
   globalLower: TextOverlaySettings;
@@ -63,6 +65,8 @@ interface EditorState {
   engineError: string | null;
 
   addFiles: (files: File[]) => void;
+  setItems: (items: VideoItem[]) => void;
+  setBatch: (id: string | null, name: string) => void;
   removeItem: (id: string) => void;
   clearAll: () => void;
   select: (id: string) => void;
@@ -98,6 +102,8 @@ const uid = () => Math.random().toString(36).slice(2, 10);
 export const useEditor = create<EditorState>((set, get) => ({
   items: [],
   selectedId: null,
+  batchId: null,
+  batchName: "",
   globalBorders: { ...DEFAULT_BORDERS },
   globalTitle: { ...DEFAULT_TITLE },
   globalLower: { ...DEFAULT_LOWER },
@@ -112,6 +118,9 @@ export const useEditor = create<EditorState>((set, get) => ({
   engineReady: false,
   engineLoading: false,
   engineError: null,
+
+  setBatch: (id, name) => set({ batchId: id, batchName: name }),
+  setItems: (items) => set({ items, selectedId: items[0]?.id ?? null }),
 
   addFiles: (files) => {
     const existing = get().items;
@@ -155,7 +164,7 @@ export const useEditor = create<EditorState>((set, get) => ({
         URL.revokeObjectURL(i.previewUrl);
         if (i.outputUrl) URL.revokeObjectURL(i.outputUrl);
       });
-      return { items: [], selectedId: null };
+      return { items: [], selectedId: null, batchId: null, batchName: "" };
     }),
 
   select: (id) => set({ selectedId: id }),

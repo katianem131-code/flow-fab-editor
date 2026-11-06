@@ -70,7 +70,13 @@ export function ProcessBar() {
         }
         setGlobalProgress((idx + 1) / pending.length);
       }
-      toast.success("Processamento concluído");
+      const finalItems = useEditor.getState().items;
+      const failedCount = finalItems.filter((i) => i.status === "error").length;
+      if (failedCount > 0) {
+        toast.error(`${failedCount} vídeo(s) falharam no processamento.`);
+      } else {
+        toast.success("Processamento concluído com sucesso!");
+      }
     } catch (err) {
       console.error(err);
       const msg = err instanceof Error ? err.message : "Erro ao carregar engine";
@@ -92,7 +98,9 @@ export function ProcessBar() {
         })),
       );
       const zip = await zipBlobs(entries);
-      downloadBlob(zip, "labremix.zip");
+      const batchName = useEditor.getState().batchName;
+      const cleanName = batchName ? `${batchName}.zip` : "labremix.zip";
+      downloadBlob(zip, cleanName);
     } finally {
       setZipping(false);
     }

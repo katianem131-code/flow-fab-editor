@@ -1,6 +1,7 @@
+// Editor em lote — sem sidebar esquerda; materiais ficam na fita horizontal (BatchMaterialsBar)
 import { createFileRoute } from "@tanstack/react-router";
 import { Header } from "@/components/editor/Header";
-import { VideoQueue } from "@/components/editor/VideoQueue";
+import { BatchMaterialsBar } from "@/components/editor/BatchMaterialsBar";
 import { PreviewStage } from "@/components/editor/PreviewStage";
 import { EditPanel } from "@/components/editor/EditPanel";
 import { ProcessBar } from "@/components/editor/ProcessBar";
@@ -32,14 +33,14 @@ function EditorPage() {
   return (
     <div className="dark flex min-h-screen flex-col bg-background text-foreground">
       <Header />
-      <div className="mx-auto grid w-full max-w-[1600px] flex-1 grid-cols-[280px_1fr_340px] overflow-hidden">
-        <div className="border-r border-border">
-          <VideoQueue />
-        </div>
-        <main className="min-h-0 overflow-hidden">
-          <PreviewStage />
+      <div className="mx-auto grid w-full max-w-[1600px] flex-1 grid-cols-[1fr_360px] overflow-hidden">
+        <main className="flex flex-col min-h-0 overflow-hidden border-r border-border">
+          <div className="flex-1 min-h-0 overflow-hidden">
+            <PreviewStage />
+          </div>
+          <BatchMaterialsBar />
         </main>
-        <aside className="flex flex-col border-l border-border bg-surface/40">
+        <aside className="flex flex-col bg-surface/40 overflow-hidden">
           <div className="flex-1 overflow-y-auto">
             <EditPanel />
           </div>

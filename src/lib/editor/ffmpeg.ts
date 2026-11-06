@@ -11,6 +11,7 @@ let loading: Promise<FFmpeg> | null = null;
 // Core é servido pelo próprio app (mesma origem) — CDNs externos podem ser
 // bloqueadas pelo navegador/rede e quebram o carregamento do engine.
 const CORE_JS_URL = "/ffmpeg/ffmpeg-core.js";
+const CORE_WASM_URL = "/ffmpeg/ffmpeg-core.wasm";
 // Fonte TTF servida pelo próprio app (drawtext exige TTF/OTF).
 const FONT_TTF_URL = "/ffmpeg/font.ttf";
 
@@ -32,11 +33,21 @@ export async function getFFmpeg(onLog?: (m: string) => void): Promise<FFmpeg> {
   if (loading) return loading;
   loading = (async () => {
     const ff = new FFmpeg();
-    if (onLog) ff.on("log", ({ message }) => onLog(message));
+    ff.on("log", ({ message }) => {
+      console.log("[FFmpeg]", message);
+      onLog?.(message);
+    });
     try {
+      let wasmUrl: string;
+      try {
+        wasmUrl = await toBlobURL(CORE_WASM_URL, "application/wasm");
+      } catch {
+        wasmUrl = wasmAsset?.url ?? CORE_WASM_URL;
+      }
+
       await ff.load({
         coreURL: await toBlobURL(CORE_JS_URL, "text/javascript"),
-        wasmURL: wasmAsset.url,
+        wasmURL: wasmUrl,
       });
     } catch (e) {
       loading = null;

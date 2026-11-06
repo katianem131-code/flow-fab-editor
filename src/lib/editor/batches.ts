@@ -46,6 +46,17 @@ export function saveBatch(rec: BatchRecord) {
   return list;
 }
 
+export function updateBatchName(id: string, newName: string) {
+  const trimmed = newName.trim();
+  const list = loadBatches().map((b) => (b.id === id ? { ...b, name: trimmed } : b));
+  try {
+    window.localStorage.setItem(KEY, JSON.stringify(list));
+  } catch {
+    /* ignore */
+  }
+  return list;
+}
+
 export function removeBatch(id: string) {
   const list = loadBatches().filter((b) => b.id !== id);
   window.localStorage.setItem(KEY, JSON.stringify(list));
