@@ -135,7 +135,7 @@ export function PreviewStage() {
   if (!item) {
     return (
       <div className="flex h-full items-center justify-center p-6">
-        <div className="rounded-xl border border-dashed border-border bg-surface px-16 py-24 text-center text-sm text-muted-foreground">
+        <div className="rounded-xl border border-dashed border-border bg-surface px-8 py-10 text-center text-sm text-muted-foreground lg:px-16 lg:py-24">
           Envie um vídeo para ver o preview
         </div>
       </div>
@@ -183,15 +183,16 @@ export function PreviewStage() {
   const controlsWidth = isLandscape ? "min(90%, 520px)" : "min(90%, 280px)";
 
   return (
-    <div className="flex h-full flex-col items-center justify-center gap-2.5 p-4 bg-zinc-950/40 overflow-y-auto">
+    <div className="flex h-full flex-col items-center justify-center gap-2 p-2 lg:gap-2.5 lg:p-4 bg-zinc-950/40 lg:overflow-y-auto">
       {/* Container do preview com cor de fundo = cor da borda do template */}
       <div
-        className="relative overflow-hidden rounded-xl shadow-2xl ring-1 ring-white/10"
+        className={`relative overflow-hidden rounded-xl shadow-2xl ring-1 ring-white/10 ${
+          isLandscape
+            ? "w-[min(92vw,520px)]"
+            : "h-[30vh] max-h-[260px] lg:h-[min(48vh,440px)] lg:max-h-[max(320px,calc(100vh-270px))]"
+        }`}
         style={{
           aspectRatio: `${dims.w} / ${dims.h}`,
-          height: isLandscape ? "auto" : "min(48vh, 440px)",
-          width: isLandscape ? "min(92vw, 520px)" : "auto",
-          maxHeight: "max(320px, calc(100vh - 270px))",
           maxWidth: "100%",
           backgroundColor: b.color,
           containerType: "size",

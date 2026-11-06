@@ -35,7 +35,8 @@ function EditorPage() {
       <Header />
       <div className="mx-auto grid w-full max-w-[1600px] flex-1 grid-cols-1 lg:grid-cols-[1fr_360px] lg:overflow-hidden">
         <main className="flex flex-col min-h-0 lg:overflow-hidden border-b lg:border-b-0 lg:border-r border-border">
-          <div className="min-h-[55vh] lg:flex-1 lg:min-h-0 lg:overflow-hidden">
+          {/* No mobile o preview fica fixo no topo (abaixo do header) enquanto os controles rolam */}
+          <div className="sticky top-14 z-10 bg-background lg:static lg:z-auto lg:flex-1 lg:min-h-0 lg:overflow-hidden">
             <PreviewStage />
           </div>
           <BatchMaterialsBar />
