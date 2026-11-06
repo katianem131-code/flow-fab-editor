@@ -57,20 +57,30 @@ export const useAntiDup = create<AntiDupStore>((set, get) => ({
   },
 }));
 
-export function getVideoDuration(file: File): Promise<number> {
+export function getVideoInfo(file: File): Promise<{ duration: number; hasAudio: boolean }> {
   return new Promise((resolve) => {
     const v = document.createElement("video");
     const url = URL.createObjectURL(file);
     v.preload = "metadata";
     v.onloadedmetadata = () => {
       const d = v.duration;
+      const hasAudio = Boolean(
+        (v as any).mozHasAudio ||
+        (v as any).webkitAudioDecodedByteCount > 0 ||
+        Boolean((v as any).audioTracks && (v as any).audioTracks.length > 0)
+      );
       URL.revokeObjectURL(url);
-      resolve(Number.isFinite(d) ? d : 0);
+      resolve({ duration: Number.isFinite(d) ? d : 0, hasAudio });
     };
     v.onerror = () => {
       URL.revokeObjectURL(url);
-      resolve(0);
+      resolve({ duration: 0, hasAudio: false });
     };
     v.src = url;
   });
+}
+
+export async function getVideoDuration(file: File): Promise<number> {
+  const info = await getVideoInfo(file);
+  return info.duration;
 }

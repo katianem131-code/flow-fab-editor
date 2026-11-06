@@ -228,8 +228,22 @@ export async function processVideo(
         "-fflags", "+bitexact",
         "-flags:v", "+bitexact",
         "-flags:a", "+bitexact",
+        "-metadata", "title=",
+        "-metadata", "comment=",
+        "-metadata", "description=",
+        "-metadata", "artist=",
+        "-metadata", "album=",
+        "-metadata", "date=",
         "-metadata", "creation_time=",
+        "-metadata", "author=",
+        "-metadata", "copyright=",
+        "-metadata", "composer=",
+        "-metadata", "performer=",
         "-metadata", "encoder=",
+        "-metadata:s:v", "handler_name=",
+        "-metadata:s:a", "handler_name=",
+        "-metadata:s:v", "encoder=",
+        "-metadata:s:a", "encoder=",
       );
     }
 

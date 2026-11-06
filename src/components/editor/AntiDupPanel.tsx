@@ -41,8 +41,20 @@ export function AntiDupPanel() {
           <Toggle label="Ativar anti-duplicidade" checked={s.enabled} onChange={(v) => update({ enabled: v })} />
           <div className={s.enabled ? "flex flex-col gap-3" : "pointer-events-none flex flex-col gap-3 opacity-40"}>
             <p className="text-[10px] text-muted-foreground">{summary}</p>
-            <Toggle label="Espelhar (esquerda vira direita)" checked={s.mirror} onChange={(v) => update({ mirror: v })} />
-            <Toggle label="Limpar metadados do arquivo" checked={s.stripMetadata} onChange={(v) => update({ stripMetadata: v })} />
+            <div className="flex flex-col gap-1">
+              <Toggle label="Espelhar (esquerda vira direita)" checked={s.mirror} onChange={(v) => update({ mirror: v })} />
+              <p className="text-[10px] text-muted-foreground pl-6">
+                Inverte o vídeo horizontalmente na tela e na exportação.
+              </p>
+            </div>
+
+            <div className="flex flex-col gap-1">
+              <Toggle label="Limpar metadados do arquivo" checked={s.stripMetadata} onChange={(v) => update({ stripMetadata: v })} />
+              <p className="text-[10px] text-muted-foreground pl-6">
+                Remove GPS, modelo da câmera/celular, data de criação, encoder e identificadores únicos.
+              </p>
+            </div>
+
             <div className="flex flex-col gap-1">
               <label className="flex items-center justify-between gap-2 text-xs">
                 <span className="font-medium">Velocidade</span>

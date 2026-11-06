@@ -2,6 +2,7 @@ import { useRef } from "react";
 import { Check, ChevronLeft, ChevronRight, LayoutTemplate, Film } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useEditor, effectiveBorders } from "@/lib/editor/store";
+import { useAntiDup } from "@/lib/editor/antidup";
 import { VIDEO_TEMPLATES, matchesTemplate } from "@/lib/editor/templates";
 import { ASPECT_DIMS } from "@/lib/editor/types";
 
@@ -12,6 +13,8 @@ export function TemplatesGallery() {
   const mode = useEditor((s) => s.editMode);
   const global = useEditor((s) => s.globalBorders);
   const apply = useEditor((s) => s.applyFramingTemplate);
+  const antiDup = useAntiDup((s) => s.antiDup);
+  const isMirrored = antiDup.enabled && antiDup.mirror;
   const item = items.find((video) => video.id === selectedId);
   const borders = mode === "single" && item ? effectiveBorders(item, global) : global;
 
@@ -33,7 +36,18 @@ export function TemplatesGallery() {
               <span className={`template-mini template-mini--${template.surface} relative flex h-[142px] w-full items-center justify-center overflow-hidden rounded-sm`}>
                 <span className="relative block w-full overflow-hidden" style={{ aspectRatio: `${dims.w}/${dims.h}`, maxHeight: "100%", height: b.aspect === "9:16" ? "100%" : undefined }}>
                   <span className="absolute flex items-center justify-center overflow-hidden bg-muted text-muted-foreground" style={{ top: `${b.borderTop}%`, bottom: `${b.borderBottom}%`, left: `${b.borderLeft}%`, right: `${b.borderRight}%` }}>
-                    {item ? <video src={item.previewUrl} muted playsInline preload="metadata" className="h-full w-full object-cover" /> : <Film className="h-5 w-5" />}
+                    {item ? (
+                      <video
+                        src={item.previewUrl}
+                        muted
+                        playsInline
+                        preload="metadata"
+                        className="h-full w-full object-cover transition-transform duration-200"
+                        style={{ transform: isMirrored ? "scaleX(-1)" : undefined }}
+                      />
+                    ) : (
+                      <Film className="h-5 w-5" />
+                    )}
                   </span>
                 </span>
                 {active && <span className="absolute right-1 top-1 grid h-5 w-5 place-items-center rounded-full bg-primary text-primary-foreground"><Check className="h-3 w-3" /></span>}

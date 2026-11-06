@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { Play, Pause, Download } from "lucide-react";
 import { useEditor, effectiveBorders, titleTextForItem } from "@/lib/editor/store";
+import { useAntiDup } from "@/lib/editor/antidup";
 import { ASPECT_DIMS, TextOverlaySettings } from "@/lib/editor/types";
 import { downloadBlob } from "@/lib/editor/zip";
 
@@ -13,6 +14,10 @@ export function PreviewStage() {
   const title = useEditor((s) => s.globalTitle);
   const lower = useEditor((s) => s.globalLower);
   const overlay = useEditor((s) => s.overlay);
+  const antiDup = useAntiDup((s) => s.antiDup);
+  const isMirrored = antiDup.enabled && antiDup.mirror;
+  const speed = antiDup.enabled ? antiDup.speed : 1;
+
   const videoRef = useRef<HTMLVideoElement>(null);
   const [playing, setPlaying] = useState(false);
   const [time, setTime] = useState(0);
@@ -24,6 +29,12 @@ export function PreviewStage() {
     setTime(0);
     setShowOutput(false);
   }, [item?.id]);
+
+  useEffect(() => {
+    if (videoRef.current) {
+      videoRef.current.playbackRate = speed;
+    }
+  }, [speed]);
 
   if (!item) {
     return (
@@ -44,6 +55,7 @@ export function PreviewStage() {
   const toggle = () => {
     const v = videoRef.current;
     if (!v) return;
+    v.playbackRate = speed;
     if (v.paused) {
       v.play();
       setPlaying(true);
@@ -84,6 +96,27 @@ export function PreviewStage() {
           containerType: "size",
         }}
       >
+        {/* Badges de anti-duplicidade em tempo real */}
+        {antiDup.enabled && (isMirrored || speed !== 1 || antiDup.stripMetadata) && (
+          <div className="pointer-events-none absolute left-2 top-2 z-20 flex flex-wrap gap-1">
+            {isMirrored && (
+              <span className="rounded bg-black/75 px-1.5 py-0.5 text-[9px] font-semibold text-primary backdrop-blur ring-1 ring-primary/40 shadow-sm">
+                ⮂ Espelhado
+              </span>
+            )}
+            {speed !== 1 && (
+              <span className="rounded bg-black/75 px-1.5 py-0.5 text-[9px] font-semibold text-emerald-400 backdrop-blur ring-1 ring-emerald-500/40 shadow-sm">
+                ⚡ {speed.toFixed(2).replace(".", ",")}×
+              </span>
+            )}
+            {antiDup.stripMetadata && (
+              <span className="rounded bg-black/75 px-1.5 py-0.5 text-[9px] font-semibold text-blue-300 backdrop-blur ring-1 ring-blue-500/40 shadow-sm">
+                🛡️ Metadados limpos
+              </span>
+            )}
+          </div>
+        )}
+
         {/* Área do vídeo — limitada pelas bordas do template */}
         <div
           className="absolute inset-0 overflow-hidden"
@@ -98,14 +131,20 @@ export function PreviewStage() {
             ref={videoRef}
             src={src}
             // object-cover: o vídeo ocupa 100% da área entre as bordas do template sem deixar sobras cinzas
-            className="h-full w-full object-cover"
+            className="h-full w-full object-cover transition-transform duration-200"
             style={{
-              transform: `scale(${zoom * ((b.stretchX ?? 100) / 100)}, ${zoom * ((b.stretchY ?? 100) / 100)}) translate(${(b.posX - 50) * 0.6}%, ${(b.posY - 50) * 0.6}%)`,
+              transform: `${isMirrored ? "scaleX(-1) " : ""}scale(${zoom * ((b.stretchX ?? 100) / 100)}, ${zoom * ((b.stretchY ?? 100) / 100)}) translate(${((b.posX - 50) * (isMirrored ? -0.6 : 0.6))}%, ${(b.posY - 50) * 0.6}%)`,
               transformOrigin: "center center",
             }}
             playsInline
             onTimeUpdate={(e) => setTime(e.currentTarget.currentTime)}
-            onLoadedMetadata={(e) => setDuration(e.currentTarget.duration)}
+            onLoadedMetadata={(e) => {
+              setDuration(e.currentTarget.duration);
+              e.currentTarget.playbackRate = speed;
+            }}
+            onPlay={(e) => {
+              e.currentTarget.playbackRate = speed;
+            }}
             onEnded={() => setPlaying(false)}
           />
         </div>
