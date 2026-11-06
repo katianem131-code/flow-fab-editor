@@ -19,7 +19,7 @@ export function EditPanel() {
   const item = items.find((i) => i.id === selectedId) ?? null;
 
   return (
-    <div className="flex h-full flex-col overflow-hidden">
+    <div className="flex flex-col lg:h-full lg:overflow-hidden">
       <PresetsBar />
 
       <div className="border-b border-border p-3">
@@ -32,7 +32,7 @@ export function EditPanel() {
       </div>
 
 
-      <div className="grid grid-cols-5 gap-1 border-b border-border p-2">
+      <div className="grid grid-cols-5 gap-1 border-b sticky top-14 z-10 bg-background lg:static border-border p-2">
         <TabBtn active={tab === "bordas"} onClick={() => setTab("bordas")}>Bordas</TabBtn>
         <TabBtn active={tab === "titulo"} onClick={() => setTab("titulo")}>Título</TabBtn>
         <TabBtn active={tab === "inferior"} onClick={() => setTab("inferior")}>Inferior</TabBtn>
@@ -71,7 +71,7 @@ export function EditPanel() {
         )}
       </div>
 
-      <div className="flex-1 overflow-y-auto">
+      <div className="lg:flex-1 lg:overflow-y-auto">
         {tab === "bordas" && <BordersTab />}
         {tab === "titulo" && <TitleTab />}
         {tab === "inferior" && <LowerTab />}

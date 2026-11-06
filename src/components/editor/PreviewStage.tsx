@@ -190,8 +190,8 @@ export function PreviewStage() {
         style={{
           aspectRatio: `${dims.w} / ${dims.h}`,
           height: isLandscape ? "auto" : "min(48vh, 440px)",
-          width: isLandscape ? "min(85vw, 520px)" : "auto",
-          maxHeight: "calc(100vh - 270px)",
+          width: isLandscape ? "min(92vw, 520px)" : "auto",
+          maxHeight: "max(320px, calc(100vh - 270px))",
           maxWidth: "100%",
           backgroundColor: b.color,
           containerType: "size",

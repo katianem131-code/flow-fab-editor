@@ -33,15 +33,15 @@ function EditorPage() {
   return (
     <div className="dark flex min-h-screen flex-col bg-background text-foreground">
       <Header />
-      <div className="mx-auto grid w-full max-w-[1600px] flex-1 grid-cols-[1fr_360px] overflow-hidden">
-        <main className="flex flex-col min-h-0 overflow-hidden border-r border-border">
-          <div className="flex-1 min-h-0 overflow-hidden">
+      <div className="mx-auto grid w-full max-w-[1600px] flex-1 grid-cols-1 lg:grid-cols-[1fr_360px] lg:overflow-hidden">
+        <main className="flex flex-col min-h-0 lg:overflow-hidden border-b lg:border-b-0 lg:border-r border-border">
+          <div className="min-h-[55vh] lg:flex-1 lg:min-h-0 lg:overflow-hidden">
             <PreviewStage />
           </div>
           <BatchMaterialsBar />
         </main>
-        <aside className="flex flex-col bg-surface/40 overflow-hidden">
-          <div className="flex-1 overflow-y-auto">
+        <aside className="flex flex-col bg-surface/40 lg:overflow-hidden">
+          <div className="lg:flex-1 lg:overflow-y-auto">
             <EditPanel />
           </div>
           <ProcessBar />
