@@ -65,33 +65,40 @@ export function PreviewStage() {
   const bl = b.borderLeft ?? 0;
   const br = b.borderRight ?? 0;
 
+  // Tamanho do preview: dimensões normais de visualização (compacto, padrão smartphone/feed)
+  const isLandscape = dims.w > dims.h;
+  const controlsWidth = isLandscape ? "min(90%, 520px)" : "min(90%, 280px)";
+
   return (
-    <div className="flex h-full flex-col items-center justify-center gap-3 p-6">
+    <div className="flex h-full flex-col items-center justify-center gap-2.5 p-4 bg-zinc-950/40 overflow-y-auto">
+      {/* Container do preview com cor de fundo = cor da borda do template */}
       <div
-        className="relative overflow-hidden rounded-lg shadow-2xl"
+        className="relative overflow-hidden rounded-xl shadow-2xl ring-1 ring-white/10"
         style={{
-          width: "min(55vh, 100%)",
           aspectRatio: `${dims.w} / ${dims.h}`,
+          height: isLandscape ? "auto" : "min(48vh, 440px)",
+          width: isLandscape ? "min(85vw, 520px)" : "auto",
+          maxHeight: "calc(100vh - 270px)",
+          maxWidth: "100%",
           backgroundColor: b.color,
           containerType: "size",
         }}
       >
+        {/* Área do vídeo — limitada pelas bordas do template */}
         <div
-          className="absolute overflow-hidden flex"
+          className="absolute inset-0 overflow-hidden"
           style={{
             top: `${bt}%`,
             bottom: `${bb}%`,
             left: `${bl}%`,
             right: `${br}%`,
-            backgroundColor: b.color,
-            justifyContent: b.posX < 33 ? "flex-start" : b.posX > 66 ? "flex-end" : "center",
-            alignItems: b.posY < 33 ? "flex-start" : b.posY > 66 ? "flex-end" : "center",
           }}
         >
           <video
             ref={videoRef}
             src={src}
-            className="h-full w-full object-contain"
+            // object-cover: o vídeo ocupa 100% da área entre as bordas do template sem deixar sobras cinzas
+            className="h-full w-full object-cover"
             style={{
               transform: `scale(${zoom * ((b.stretchX ?? 100) / 100)}, ${zoom * ((b.stretchY ?? 100) / 100)}) translate(${(b.posX - 50) * 0.6}%, ${(b.posY - 50) * 0.6}%)`,
               transformOrigin: "center center",
@@ -102,6 +109,8 @@ export function PreviewStage() {
             onEnded={() => setPlaying(false)}
           />
         </div>
+
+        {/* Overlays de texto e imagem */}
         {item && (
           <>
             <TextOverlay
@@ -127,14 +136,18 @@ export function PreviewStage() {
         )}
       </div>
 
-      <div className="flex w-full max-w-md items-center gap-3 rounded-lg bg-surface px-3 py-2">
+      {/* Barra de controles compacta e alinhada ao preview */}
+      <div
+        className="flex items-center gap-2.5 rounded-lg bg-surface/90 px-3 py-1.5 shadow-sm border border-border/50 backdrop-blur"
+        style={{ width: controlsWidth }}
+      >
         <button
           onClick={toggle}
-          className="grid h-8 w-8 place-items-center rounded-md bg-primary text-primary-foreground hover:opacity-90"
+          className="grid h-7 w-7 shrink-0 place-items-center rounded-md bg-primary text-primary-foreground hover:opacity-90"
         >
-          {playing ? <Pause className="h-4 w-4" /> : <Play className="h-4 w-4" />}
+          {playing ? <Pause className="h-3.5 w-3.5" /> : <Play className="h-3.5 w-3.5" />}
         </button>
-        <span className="text-[11px] tabular-nums text-muted-foreground">
+        <span className="text-[11px] tabular-nums text-muted-foreground shrink-0">
           {fmt(time)}
         </span>
         <input
@@ -144,18 +157,19 @@ export function PreviewStage() {
           step={0.05}
           value={time}
           onChange={(e) => seek(Number(e.target.value))}
-          className="flex-1"
+          className="flex-1 min-w-0"
         />
-        <span className="text-[11px] tabular-nums text-muted-foreground">
+        <span className="text-[11px] tabular-nums text-muted-foreground shrink-0">
           {fmt(duration)}
         </span>
       </div>
 
+      {/* Botões de resultado (pós-processamento) */}
       {item.outputUrl && (
         <div className="flex items-center gap-2 text-xs">
           <button
             onClick={() => setShowOutput((v) => !v)}
-            className="rounded-md border border-border px-3 py-1.5 hover:bg-surface-2"
+            className="rounded-md border border-border px-3 py-1.5 hover:bg-surface-2 transition"
           >
             {showOutput ? "Ver original" : "Ver resultado"}
           </button>
@@ -166,7 +180,7 @@ export function PreviewStage() {
                 .then((r) => r.blob())
                 .then((b) => downloadBlob(b, item.outputName ?? item.name))
             }
-            className="inline-flex items-center gap-1 rounded-md bg-[color:var(--success)] px-3 py-1.5 font-medium text-[color:var(--success-foreground)] hover:opacity-90"
+            className="inline-flex items-center gap-1 rounded-md bg-[color:var(--success)] px-3 py-1.5 font-medium text-[color:var(--success-foreground)] hover:opacity-90 transition"
           >
             <Download className="h-3 w-3" /> Baixar MP4
           </button>

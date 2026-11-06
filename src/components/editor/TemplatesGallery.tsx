@@ -33,7 +33,7 @@ export function TemplatesGallery() {
               <span className={`template-mini template-mini--${template.surface} relative flex h-[142px] w-full items-center justify-center overflow-hidden rounded-sm`}>
                 <span className="relative block w-full overflow-hidden" style={{ aspectRatio: `${dims.w}/${dims.h}`, maxHeight: "100%", height: b.aspect === "9:16" ? "100%" : undefined }}>
                   <span className="absolute flex items-center justify-center overflow-hidden bg-muted text-muted-foreground" style={{ top: `${b.borderTop}%`, bottom: `${b.borderBottom}%`, left: `${b.borderLeft}%`, right: `${b.borderRight}%` }}>
-                    {item ? <video src={item.previewUrl} muted playsInline preload="metadata" className="h-full w-full object-contain" /> : <Film className="h-5 w-5" />}
+                    {item ? <video src={item.previewUrl} muted playsInline preload="metadata" className="h-full w-full object-cover" /> : <Film className="h-5 w-5" />}
                   </span>
                 </span>
                 {active && <span className="absolute right-1 top-1 grid h-5 w-5 place-items-center rounded-full bg-primary text-primary-foreground"><Check className="h-3 w-3" /></span>}
