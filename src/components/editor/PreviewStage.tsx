@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { Play, Pause, Download } from "lucide-react";
+import { Play, Pause, Download, Film } from "lucide-react";
 import { useEditor, effectiveBorders, titleTextForItem } from "@/lib/editor/store";
 import { useAntiDup } from "@/lib/editor/antidup";
 import { ASPECT_DIMS, TextOverlaySettings } from "@/lib/editor/types";
@@ -20,6 +20,8 @@ export function PreviewStage() {
   const b = item ? effectiveBorders(item, global) : global;
 
   const videoRef = useRef<HTMLVideoElement>(null);
+  const video2Ref = useRef<HTMLVideoElement>(null);
+  const secondMediaInputRef = useRef<HTMLInputElement>(null);
   const [playing, setPlaying] = useState(false);
   const [time, setTime] = useState(0);
   const [duration, setDuration] = useState(0);
@@ -34,6 +36,34 @@ export function PreviewStage() {
   const patchBorders = (p: Partial<typeof b>) => {
     if (isSingle && item) updateItemBorders(item.id, p);
     else updateGlobalBorders(p);
+  };
+
+  const onPickSecondMedia = (files: FileList | null) => {
+    if (!files || !files[0]) return;
+    const f = files[0];
+    const isVid = f.type.startsWith("video/") || /\.(mp4|mov|webm)$/i.test(f.name);
+    const url = URL.createObjectURL(f);
+    patchBorders({
+      secondMedia: {
+        ...(b.secondMedia ?? {
+          enabled: true,
+          type: "video" as const,
+          src: null,
+          name: null,
+          splitRatio: 50,
+          gap: 2,
+          volume: 0,
+          loop: true,
+          posX: 50,
+          posY: 50,
+          zoom: 100,
+        }),
+        enabled: true,
+        type: isVid ? "video" : "image",
+        src: url,
+        name: f.name,
+      },
+    });
   };
 
   const [isDragging, setIsDragging] = useState(false);
@@ -118,21 +148,27 @@ export function PreviewStage() {
 
   const toggle = () => {
     const v = videoRef.current;
+    const v2 = video2Ref.current;
     if (!v) return;
     v.playbackRate = speed;
+    if (v2) v2.playbackRate = speed;
     if (v.paused) {
       v.play();
+      v2?.play();
       setPlaying(true);
     } else {
       v.pause();
+      v2?.pause();
       setPlaying(false);
     }
   };
 
   const seek = (t: number) => {
     const v = videoRef.current;
+    const v2 = video2Ref.current;
     if (!v) return;
     v.currentTime = t;
+    if (v2) v2.currentTime = t;
     setTime(t);
   };
 
@@ -160,56 +196,161 @@ export function PreviewStage() {
           containerType: "size",
         }}
       >
-        {/* Área do vídeo — limitada pelas bordas do template */}
-        <div
-          onMouseDown={(e) => {
-            if (e.button === 0) {
-              e.preventDefault();
-              onDragStart(e.clientX, e.clientY);
-            }
-          }}
-          onTouchStart={(e) => {
-            if (e.touches[0]) onDragStart(e.touches[0].clientX, e.touches[0].clientY);
-          }}
-          className={`absolute inset-0 overflow-hidden select-none ${
-            isDragging ? "cursor-grabbing" : "cursor-grab"
-          }`}
-          style={{
-            top: `${bt}%`,
-            bottom: `${bb}%`,
-            left: `${bl}%`,
-            right: `${br}%`,
-          }}
-          title="Clique e arraste o vídeo para posicionar no enquadramento (vertical e horizontal)"
-        >
-          <video
-            ref={videoRef}
-            src={src}
-            // object-cover com object-position alinhado ao posY/posX configurado
-            className="h-full w-full object-cover pointer-events-none"
-            style={{
-              objectFit: "cover",
-              objectPosition: `${isMirrored ? 100 - b.posX : b.posX}% ${b.posY}%`,
-              transform: `${isMirrored ? "scaleX(-1) " : ""}scale(${zoom * ((b.stretchX ?? 100) / 100)}, ${zoom * ((b.stretchY ?? 100) / 100)})`,
-              transformOrigin: `${isMirrored ? 100 - b.posX : b.posX}% ${b.posY}%`,
-            }}
-            playsInline
-            onTimeUpdate={(e) => setTime(e.currentTarget.currentTime)}
-            onLoadedMetadata={(e) => {
-              setDuration(e.currentTarget.duration);
-              e.currentTarget.playbackRate = speed;
-            }}
-            onPlay={(e) => {
-              e.currentTarget.playbackRate = speed;
-            }}
-            onEnded={() => setPlaying(false)}
-          />
+        {/* MODO 2 VÍDEOS (SPLIT SCREEN) */}
+        {b.secondMedia?.enabled ? (
+          <div className="relative w-full h-full flex flex-col">
+            {/* Slot Superior: Vídeo 1 (Principal) */}
+            <div
+              onMouseDown={(e) => {
+                if (e.button === 0) {
+                  e.preventDefault();
+                  onDragStart(e.clientX, e.clientY);
+                }
+              }}
+              onTouchStart={(e) => {
+                if (e.touches[0]) onDragStart(e.touches[0].clientX, e.touches[0].clientY);
+              }}
+              className={`relative overflow-hidden select-none bg-zinc-950 flex items-center justify-center ${
+                isDragging ? "cursor-grabbing" : "cursor-grab"
+              }`}
+              style={{
+                height: `calc(${b.secondMedia.splitRatio}% - ${(b.secondMedia.gap ?? 0) / 2}%)`,
+              }}
+              title="Vídeo principal (cima) — arraste para posicionar no enquadramento"
+            >
+              <video
+                ref={videoRef}
+                src={src}
+                className="h-full w-full object-cover pointer-events-none"
+                style={{
+                  objectFit: "cover",
+                  objectPosition: `${isMirrored ? 100 - b.posX : b.posX}% ${b.posY}%`,
+                  transform: `${isMirrored ? "scaleX(-1) " : ""}scale(${zoom * ((b.stretchX ?? 100) / 100)}, ${zoom * ((b.stretchY ?? 100) / 100)})`,
+                  transformOrigin: `${isMirrored ? 100 - b.posX : b.posX}% ${b.posY}%`,
+                }}
+                playsInline
+                onTimeUpdate={(e) => setTime(e.currentTarget.currentTime)}
+                onLoadedMetadata={(e) => {
+                  setDuration(e.currentTarget.duration);
+                  e.currentTarget.playbackRate = speed;
+                }}
+                onPlay={(e) => {
+                  e.currentTarget.playbackRate = speed;
+                }}
+                onEnded={() => setPlaying(false)}
+              />
+              <div className="pointer-events-none absolute bottom-1 left-2 rounded bg-black/60 px-1.5 py-0.5 text-[8px] font-semibold text-white/80 uppercase tracking-wider backdrop-blur">
+                Vídeo principal
+              </div>
+            </div>
 
-          {/* Dica discreta ao passar o mouse */}
-          <div className="pointer-events-none absolute bottom-1.5 left-1/2 -translate-x-1/2 rounded bg-black/60 px-2 py-0.5 text-[9px] font-medium text-white/80 opacity-0 transition group-hover:opacity-100 backdrop-blur">
-            ↕ Arraste para ajustar
+            {/* Espaçador central (gap) */}
+            {(b.secondMedia.gap ?? 0) > 0 && (
+              <div style={{ height: `${b.secondMedia.gap}%`, backgroundColor: b.color }} />
+            )}
+
+            {/* Slot Inferior: Vídeo 2 ou Imagem (Gameplay / Satisfying) */}
+            <div
+              onClick={() => secondMediaInputRef.current?.click()}
+              className="relative overflow-hidden select-none bg-zinc-900 flex items-center justify-center cursor-pointer group"
+              style={{
+                height: `calc(${100 - b.secondMedia.splitRatio}% - ${(b.secondMedia.gap ?? 0) / 2}%)`,
+              }}
+              title="Clique para escolher ou trocar o Vídeo 2 / Imagem"
+            >
+              {b.secondMedia.src ? (
+                b.secondMedia.type === "video" ? (
+                  <video
+                    ref={video2Ref}
+                    src={b.secondMedia.src}
+                    className="h-full w-full object-cover pointer-events-none"
+                    loop
+                    muted
+                    playsInline
+                    autoPlay
+                  />
+                ) : (
+                  <img
+                    src={b.secondMedia.src}
+                    alt="Mídia 2"
+                    className="h-full w-full object-cover pointer-events-none"
+                  />
+                )
+              ) : (
+                <div className="flex flex-col items-center justify-center gap-1 text-center p-3 text-zinc-400 group-hover:text-primary transition">
+                  <Film className="h-5 w-5" />
+                  <span className="text-[11px] font-semibold uppercase tracking-wider text-zinc-300">
+                    + Adicionar Vídeo 2
+                  </span>
+                  <span className="text-[9px] text-zinc-500">
+                    (gameplay / satisfying / imagem)
+                  </span>
+                </div>
+              )}
+
+              <input
+                ref={secondMediaInputRef}
+                type="file"
+                accept="video/*,image/*"
+                hidden
+                onChange={(e) => onPickSecondMedia(e.target.files)}
+              />
+
+              <div className="pointer-events-none absolute bottom-1 left-2 rounded bg-black/60 px-1.5 py-0.5 text-[8px] font-semibold text-emerald-400 uppercase tracking-wider backdrop-blur opacity-80 group-hover:opacity-100 transition">
+                {b.secondMedia.src ? "Vídeo 2 (clique para trocar)" : "Vídeo 2"}
+              </div>
+            </div>
           </div>
-        </div>
+        ) : (
+          /* MODO VÍDEO ÚNICO PADRÃO */
+          <div
+            onMouseDown={(e) => {
+              if (e.button === 0) {
+                e.preventDefault();
+                onDragStart(e.clientX, e.clientY);
+              }
+            }}
+            onTouchStart={(e) => {
+              if (e.touches[0]) onDragStart(e.touches[0].clientX, e.touches[0].clientY);
+            }}
+            className={`absolute inset-0 overflow-hidden select-none ${
+              isDragging ? "cursor-grabbing" : "cursor-grab"
+            }`}
+            style={{
+              top: `${bt}%`,
+              bottom: `${bb}%`,
+              left: `${bl}%`,
+              right: `${br}%`,
+            }}
+            title="Clique e arraste o vídeo para posicionar no enquadramento (vertical e horizontal)"
+          >
+            <video
+              ref={videoRef}
+              src={src}
+              className="h-full w-full object-cover pointer-events-none"
+              style={{
+                objectFit: "cover",
+                objectPosition: `${isMirrored ? 100 - b.posX : b.posX}% ${b.posY}%`,
+                transform: `${isMirrored ? "scaleX(-1) " : ""}scale(${zoom * ((b.stretchX ?? 100) / 100)}, ${zoom * ((b.stretchY ?? 100) / 100)})`,
+                transformOrigin: `${isMirrored ? 100 - b.posX : b.posX}% ${b.posY}%`,
+              }}
+              playsInline
+              onTimeUpdate={(e) => setTime(e.currentTarget.currentTime)}
+              onLoadedMetadata={(e) => {
+                setDuration(e.currentTarget.duration);
+                e.currentTarget.playbackRate = speed;
+              }}
+              onPlay={(e) => {
+                e.currentTarget.playbackRate = speed;
+              }}
+              onEnded={() => setPlaying(false)}
+            />
+
+            <div className="pointer-events-none absolute bottom-1.5 left-1/2 -translate-x-1/2 rounded bg-black/60 px-2 py-0.5 text-[9px] font-medium text-white/80 opacity-0 transition group-hover:opacity-100 backdrop-blur">
+              ↕ Arraste para ajustar
+            </div>
+          </div>
+        )}
 
         {/* Overlays de texto e imagem */}
         {item && (

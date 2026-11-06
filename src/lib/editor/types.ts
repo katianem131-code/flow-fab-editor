@@ -1,5 +1,33 @@
 export type AspectRatio = "9:16" | "1:1" | "4:5" | "16:9";
 
+export interface SecondMediaSettings {
+  enabled: boolean;
+  type: "video" | "image";
+  src: string | null;
+  name: string | null;
+  splitRatio: number; // Porcentagem do topo (ex: 50 = 50% / 50%)
+  gap: number; // Espaçamento entre os vídeos em %
+  volume: number; // Volume do segundo vídeo (0 a 1)
+  loop: boolean;
+  posX: number;
+  posY: number;
+  zoom: number;
+}
+
+export const DEFAULT_SECOND_MEDIA: SecondMediaSettings = {
+  enabled: false,
+  type: "video",
+  src: null,
+  name: null,
+  splitRatio: 50,
+  gap: 2,
+  volume: 0,
+  loop: true,
+  posX: 50,
+  posY: 50,
+  zoom: 100,
+};
+
 export interface BorderSettings {
   zoom: number;
   posY: number;
@@ -14,6 +42,8 @@ export interface BorderSettings {
   /** Non-uniform stretch of the video, % (100 = original aspect). */
   stretchX: number;
   stretchY: number;
+  /** Mídia secundária para templates com 2 vídeos ou imagem (ex: gameplay / satisfatório) */
+  secondMedia?: SecondMediaSettings;
 }
 
 export const DEFAULT_BORDERS: BorderSettings = {

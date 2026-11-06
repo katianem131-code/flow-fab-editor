@@ -1,5 +1,5 @@
 import { create } from "zustand";
-import { VIDEO_TEMPLATES } from "./templates";
+import { VIDEO_TEMPLATES, getAllTemplates } from "./templates";
 import {
   BorderSettings,
   DEFAULT_BORDERS,
@@ -173,13 +173,34 @@ export const useEditor = create<EditorState>((set, get) => ({
 
   applyFramingTemplate: (id) =>
     set((s) => {
-      const template = VIDEO_TEMPLATES.find((t) => t.id === id);
+      const template = getAllTemplates().find((t) => t.id === id);
       if (!template) return s;
+      const patchTitle =
+        template.sampleHeadline && !s.globalTitle.enabled
+          ? {
+              globalTitle: {
+                ...s.globalTitle,
+                enabled: true,
+                text: template.sampleHeadline,
+                position: "center" as const,
+                background: true,
+                backgroundColor: "#18181b",
+                color: "#ffffff",
+                fontSize: 3.8,
+              },
+            }
+          : {};
       if (s.editMode === "single") {
         if (!s.items.some((i) => i.id === s.selectedId)) return s;
-        return { items: s.items.map((i) => i.id === s.selectedId ? { ...i, borders: { ...template.borders } } : i) };
+        return {
+          ...patchTitle,
+          items: s.items.map((i) =>
+            i.id === s.selectedId ? { ...i, borders: { ...template.borders } } : i,
+          ),
+        };
       }
       return {
+        ...patchTitle,
         globalBorders: { ...template.borders },
         items: s.items.map((i) => ({ ...i, borders: null })),
       };
