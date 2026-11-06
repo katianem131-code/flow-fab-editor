@@ -17,12 +17,77 @@ export function PreviewStage() {
   const antiDup = useAntiDup((s) => s.antiDup);
   const isMirrored = antiDup.enabled && antiDup.mirror;
   const speed = antiDup.enabled ? antiDup.speed : 1;
+  const b = item ? effectiveBorders(item, global) : global;
 
   const videoRef = useRef<HTMLVideoElement>(null);
   const [playing, setPlaying] = useState(false);
   const [time, setTime] = useState(0);
   const [duration, setDuration] = useState(0);
   const [showOutput, setShowOutput] = useState(false);
+
+  // Arrastar vídeo para ajuste de posição (especialmente vertical)
+  const editMode = useEditor((s) => s.editMode);
+  const updateGlobalBorders = useEditor((s) => s.updateGlobalBorders);
+  const updateItemBorders = useEditor((s) => s.updateItemBorders);
+
+  const isSingle = editMode === "single" && !!item;
+  const patchBorders = (p: Partial<typeof b>) => {
+    if (isSingle && item) updateItemBorders(item.id, p);
+    else updateGlobalBorders(p);
+  };
+
+  const [isDragging, setIsDragging] = useState(false);
+  const dragStartRef = useRef<{ x: number; y: number; startPosX: number; startPosY: number } | null>(null);
+
+  const onDragStart = (clientX: number, clientY: number) => {
+    setIsDragging(true);
+    dragStartRef.current = {
+      x: clientX,
+      y: clientY,
+      startPosX: b.posX,
+      startPosY: b.posY,
+    };
+  };
+
+  useEffect(() => {
+    if (!isDragging) return;
+
+    const onMove = (clientX: number, clientY: number) => {
+      if (!dragStartRef.current) return;
+      const deltaY = clientY - dragStartRef.current.y;
+      const deltaX = clientX - dragStartRef.current.x;
+
+      // Sensibilidade: arrastar para baixo traz o topo para a visão (diminui posY);
+      // arrastar para cima traz a base (aumenta posY).
+      const sensitivity = 0.35;
+      const newPosY = Math.max(0, Math.min(100, Math.round(dragStartRef.current.startPosY - deltaY * sensitivity)));
+      const newPosX = Math.max(0, Math.min(100, Math.round(dragStartRef.current.startPosX + (isMirrored ? -deltaX : deltaX) * sensitivity)));
+
+      patchBorders({ posY: newPosY, posX: newPosX });
+    };
+
+    const handleMouseMove = (e: MouseEvent) => onMove(e.clientX, e.clientY);
+    const handleTouchMove = (e: TouchEvent) => {
+      if (e.touches[0]) onMove(e.touches[0].clientX, e.touches[0].clientY);
+    };
+
+    const handleDragEnd = () => {
+      setIsDragging(false);
+      dragStartRef.current = null;
+    };
+
+    window.addEventListener("mousemove", handleMouseMove);
+    window.addEventListener("mouseup", handleDragEnd);
+    window.addEventListener("touchmove", handleTouchMove);
+    window.addEventListener("touchend", handleDragEnd);
+
+    return () => {
+      window.removeEventListener("mousemove", handleMouseMove);
+      window.removeEventListener("mouseup", handleDragEnd);
+      window.removeEventListener("touchmove", handleTouchMove);
+      window.removeEventListener("touchend", handleDragEnd);
+    };
+  }, [isDragging, isMirrored, b.posX, b.posY]);
 
   useEffect(() => {
     setPlaying(false);
@@ -46,7 +111,6 @@ export function PreviewStage() {
     );
   }
 
-  const b = effectiveBorders(item, global);
   const dims = ASPECT_DIMS[b.aspect];
   const zoom = b.zoom / 100;
 
@@ -98,22 +162,36 @@ export function PreviewStage() {
       >
         {/* Área do vídeo — limitada pelas bordas do template */}
         <div
-          className="absolute inset-0 overflow-hidden"
+          onMouseDown={(e) => {
+            if (e.button === 0) {
+              e.preventDefault();
+              onDragStart(e.clientX, e.clientY);
+            }
+          }}
+          onTouchStart={(e) => {
+            if (e.touches[0]) onDragStart(e.touches[0].clientX, e.touches[0].clientY);
+          }}
+          className={`absolute inset-0 overflow-hidden select-none ${
+            isDragging ? "cursor-grabbing" : "cursor-grab"
+          }`}
           style={{
             top: `${bt}%`,
             bottom: `${bb}%`,
             left: `${bl}%`,
             right: `${br}%`,
           }}
+          title="Clique e arraste o vídeo para posicionar no enquadramento (vertical e horizontal)"
         >
           <video
             ref={videoRef}
             src={src}
-            // object-cover: o vídeo ocupa 100% da área entre as bordas do template sem deixar sobras cinzas
-            className="h-full w-full object-cover transition-transform duration-200"
+            // object-cover com object-position alinhado ao posY/posX configurado
+            className="h-full w-full object-cover pointer-events-none"
             style={{
-              transform: `${isMirrored ? "scaleX(-1) " : ""}scale(${zoom * ((b.stretchX ?? 100) / 100)}, ${zoom * ((b.stretchY ?? 100) / 100)}) translate(${((b.posX - 50) * (isMirrored ? -0.6 : 0.6))}%, ${(b.posY - 50) * 0.6}%)`,
-              transformOrigin: "center center",
+              objectFit: "cover",
+              objectPosition: `${isMirrored ? 100 - b.posX : b.posX}% ${b.posY}%`,
+              transform: `${isMirrored ? "scaleX(-1) " : ""}scale(${zoom * ((b.stretchX ?? 100) / 100)}, ${zoom * ((b.stretchY ?? 100) / 100)})`,
+              transformOrigin: `${isMirrored ? 100 - b.posX : b.posX}% ${b.posY}%`,
             }}
             playsInline
             onTimeUpdate={(e) => setTime(e.currentTarget.currentTime)}
@@ -126,6 +204,11 @@ export function PreviewStage() {
             }}
             onEnded={() => setPlaying(false)}
           />
+
+          {/* Dica discreta ao passar o mouse */}
+          <div className="pointer-events-none absolute bottom-1.5 left-1/2 -translate-x-1/2 rounded bg-black/60 px-2 py-0.5 text-[9px] font-medium text-white/80 opacity-0 transition group-hover:opacity-100 backdrop-blur">
+            ↕ Arraste para ajustar
+          </div>
         </div>
 
         {/* Overlays de texto e imagem */}

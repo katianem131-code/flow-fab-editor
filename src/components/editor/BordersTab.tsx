@@ -53,8 +53,75 @@ export function BordersTab() {
       </div>
 
       <Slider label="Zoom" value={b.zoom} min={50} max={200} suffix="%" onChange={(v) => patch({ zoom: v })} />
-      <Slider label="Posição vertical" value={b.posY} min={0} max={100} suffix="%" onChange={(v) => patch({ posY: v })} />
-      <Slider label="Posição horizontal" value={b.posX} min={0} max={100} suffix="%" onChange={(v) => patch({ posX: v })} />
+
+      <div>
+        <Slider label="Posição vertical" value={b.posY} min={0} max={100} suffix="%" onChange={(v) => patch({ posY: v })} />
+        <div className="mt-1 flex items-center justify-between gap-1">
+          <span className="text-[10px] text-muted-foreground">Arraste no vídeo ou use:</span>
+          <div className="flex items-center gap-1">
+            <button
+              type="button"
+              onClick={() => patch({ posY: 0 })}
+              className={`rounded px-1.5 py-0.5 text-[10px] border transition ${
+                b.posY === 0 ? "border-primary bg-primary/15 text-primary font-semibold" : "border-border text-muted-foreground hover:text-foreground"
+              }`}
+            >
+              Topo
+            </button>
+            <button
+              type="button"
+              onClick={() => patch({ posY: 50 })}
+              className={`rounded px-1.5 py-0.5 text-[10px] border transition ${
+                b.posY === 50 ? "border-primary bg-primary/15 text-primary font-semibold" : "border-border text-muted-foreground hover:text-foreground"
+              }`}
+            >
+              Centro
+            </button>
+            <button
+              type="button"
+              onClick={() => patch({ posY: 100 })}
+              className={`rounded px-1.5 py-0.5 text-[10px] border transition ${
+                b.posY === 100 ? "border-primary bg-primary/15 text-primary font-semibold" : "border-border text-muted-foreground hover:text-foreground"
+              }`}
+            >
+              Base
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <div>
+        <Slider label="Posição horizontal" value={b.posX} min={0} max={100} suffix="%" onChange={(v) => patch({ posX: v })} />
+        <div className="mt-1 flex items-center justify-end gap-1">
+          <button
+            type="button"
+            onClick={() => patch({ posX: 0 })}
+            className={`rounded px-1.5 py-0.5 text-[10px] border transition ${
+              b.posX === 0 ? "border-primary bg-primary/15 text-primary font-semibold" : "border-border text-muted-foreground hover:text-foreground"
+            }`}
+          >
+            Esquerda
+          </button>
+          <button
+            type="button"
+            onClick={() => patch({ posX: 50 })}
+            className={`rounded px-1.5 py-0.5 text-[10px] border transition ${
+              b.posX === 50 ? "border-primary bg-primary/15 text-primary font-semibold" : "border-border text-muted-foreground hover:text-foreground"
+            }`}
+          >
+            Centro
+          </button>
+          <button
+            type="button"
+            onClick={() => patch({ posX: 100 })}
+            className={`rounded px-1.5 py-0.5 text-[10px] border transition ${
+              b.posX === 100 ? "border-primary bg-primary/15 text-primary font-semibold" : "border-border text-muted-foreground hover:text-foreground"
+            }`}
+          >
+            Direita
+          </button>
+        </div>
+      </div>
 
       <div className="mt-2 border-t border-border pt-3">
         <div className="mb-2 text-xs font-medium">Bordas independentes</div>

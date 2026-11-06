@@ -43,7 +43,11 @@ export function TemplatesGallery() {
                         playsInline
                         preload="metadata"
                         className="h-full w-full object-cover transition-transform duration-200"
-                        style={{ transform: isMirrored ? "scaleX(-1)" : undefined }}
+                        style={{
+                          objectFit: "cover",
+                          objectPosition: `${isMirrored ? 100 - borders.posX : borders.posX}% ${borders.posY}%`,
+                          transform: isMirrored ? "scaleX(-1)" : undefined,
+                        }}
                       />
                     ) : (
                       <Film className="h-5 w-5" />
