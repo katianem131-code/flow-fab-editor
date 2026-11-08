@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Play, Package, Loader2 } from "lucide-react";
 import { useEditor, effectiveBorders, titleTextForItem } from "@/lib/editor/store";
 import { toast } from "sonner";
+import { ScheduleDialog } from "./ScheduleDialog";
 import { downloadBlob, zipBlobs } from "@/lib/editor/zip";
 
 export function ProcessBar() {
@@ -149,6 +150,7 @@ export function ProcessBar() {
             Baixar .zip ({outputs.length})
           </button>
         )}
+        <ScheduleDialog />
       </div>
     </div>
   );

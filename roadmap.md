@@ -2,3 +2,4 @@
 - [x] Verify batch/individual application and the live editor flow.
 - [x] Apply and verify faster encoding and 30 fps export.
 - [x] Keep the mobile video preview visible while scrolling and using adjustment controls; verify with an uploaded video.
+- [x] Add Instagram scheduling UI (inline form + /agenda) using LabRemix colors.

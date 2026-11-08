@@ -18,6 +18,12 @@ export function Header() {
         </Link>
         <nav className="flex items-center gap-2 text-sm">
           <Link
+            to="/agenda"
+            className="rounded-md border border-border px-3 py-1.5 text-xs font-medium text-muted-foreground hover:text-foreground"
+          >
+            Agenda
+          </Link>
+          <Link
             to="/admin"
             className="rounded-md border border-border px-3 py-1.5 text-xs font-medium text-muted-foreground hover:text-foreground"
           >
