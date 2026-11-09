@@ -20,18 +20,18 @@ export function ScheduleDialog() {
           <CalendarClock className="h-3 w-3" /> Agendar
         </button>
       </DialogTrigger>
-      <DialogContent className="max-h-[90vh] max-w-lg overflow-y-auto">
+      <DialogContent className="max-h-[90vh] max-w-lg overflow-y-auto max-sm:inset-x-0 max-sm:bottom-0 max-sm:top-auto max-sm:left-0 max-sm:translate-x-0 max-sm:translate-y-0 max-sm:max-h-[92dvh] max-sm:rounded-t-2xl max-sm:border-x-0 max-sm:border-b-0 max-sm:p-4 max-sm:pt-5">
         <DialogHeader>
           <DialogTitle>Agendar publicações</DialogTitle>
         </DialogHeader>
-        <div className="space-y-3">
+        <div className="space-y-3 pb-2">
           {ready.map((it) => {
             const idx = items.findIndex((x) => x.id === it.id);
             const headline = globalTitle.enabled ? titleTextForItem(it, idx, globalTitle) : it.name;
             return (
               <div key={it.id} className="rounded-lg border border-border bg-surface p-3">
                 <div className="flex items-center gap-3">
-                  <video src={it.outputUrl} muted className="h-20 w-12 rounded bg-background object-cover" />
+                  <video src={it.outputUrl} muted className="h-24 w-14 shrink-0 rounded bg-background object-cover sm:h-20 sm:w-12" />
                   <div className="min-w-0 flex-1">
                     <p className="truncate text-xs font-semibold">{idx + 1}. {it.outputName ?? it.name}</p>
                     <p className="truncate text-[11px] text-muted-foreground">{headline}</p>

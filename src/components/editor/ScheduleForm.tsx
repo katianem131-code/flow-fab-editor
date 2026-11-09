@@ -106,7 +106,7 @@ export function ScheduleForm({
           ))}
         </select>
       </label>
-      <div className="grid grid-cols-2 gap-2">
+      <div className="grid grid-cols-1 gap-2 min-[380px]:grid-cols-2">
         <label className="block text-[11px] text-muted-foreground">
           Dia
           <input type="date" className={field} value={date} onChange={(e) => setDate(e.target.value)} />
