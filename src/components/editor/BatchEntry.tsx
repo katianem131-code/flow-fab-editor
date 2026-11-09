@@ -729,11 +729,11 @@ export function BatchEntry() {
 
       {/* Modal de Escolha de Opção ao Clicar no Projeto */}
       <Dialog open={!!selectedProject} onOpenChange={(open) => !open && setSelectedProject(null)}>
-        <DialogContent className="max-w-lg border-border bg-background p-6">
+        <DialogContent className="max-w-lg border-border bg-background p-6 max-sm:inset-x-0 max-sm:bottom-0 max-sm:top-auto max-sm:left-0 max-sm:translate-x-0 max-sm:translate-y-0 max-sm:max-h-[92dvh] max-sm:overflow-y-auto max-sm:rounded-t-2xl max-sm:border-x-0 max-sm:border-b-0 max-sm:p-4 max-sm:pt-5">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2 text-base font-semibold">
               <FolderOpen className="h-5 w-5 text-primary shrink-0" />
-              <span className="truncate">{selectedProject?.name}</span>
+              <span className="min-w-0 truncate">{selectedProject?.name}</span>
             </DialogTitle>
             <DialogDescription className="text-xs text-muted-foreground">
               {selectedProject && (
@@ -745,20 +745,20 @@ export function BatchEntry() {
           </DialogHeader>
 
           {selectedProject && (
-            <div className="space-y-4 pt-2">
+            <div className="min-w-0 space-y-4 pt-2">
               {/* Renomear o projeto se desejar */}
               <div className="rounded-lg border border-border bg-surface/40 p-3">
                 <label className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
                   Nome do Lote / Projeto
                 </label>
-                <div className="mt-1.5 flex items-center gap-2">
+                <div className="mt-1.5 flex flex-wrap items-center gap-2">
                   <input
                     value={projectRename}
                     onChange={(e) => setProjectRename(e.target.value)}
                     onKeyDown={(e) => {
                       if (e.key === "Enter") handleSaveProjectRename();
                     }}
-                    className="flex-1 rounded-md border border-border bg-background px-3 py-1.5 text-xs outline-none focus:border-primary"
+                    className="min-w-0 flex-1 rounded-md border border-border bg-background px-3 py-1.5 text-xs outline-none focus:border-primary"
                   />
                   <button
                     onClick={handleSaveProjectRename}
@@ -821,19 +821,19 @@ export function BatchEntry() {
               {/* Arquivos registrados no lote */}
               {selectedProject.fileNames && selectedProject.fileNames.length > 0 && (
                 <div className="rounded-lg border border-border bg-surface/20 p-3">
-                  <div className="flex items-center justify-between text-xs text-muted-foreground">
-                    <span className="font-semibold text-foreground">Arquivos registrados ({selectedProject.fileNames.length})</span>
-                    <span>{selectedProject.videoCount} vídeo(s) · {selectedProject.imageCount} imagem(ns)</span>
+                  <div className="flex items-center justify-between gap-2 text-xs text-muted-foreground">
+                    <span className="min-w-0 truncate font-semibold text-foreground">Arquivos registrados ({selectedProject.fileNames.length})</span>
+                    <span className="shrink-0">{selectedProject.videoCount} vídeo(s) · {selectedProject.imageCount} imagem(ns)</span>
                   </div>
                   <ul className="mt-2 max-h-28 overflow-y-auto space-y-1 text-xs pr-1">
                     {selectedProject.fileNames.map((fn, idx) => (
-                      <li key={idx} className="flex items-center gap-2 truncate text-muted-foreground">
+                      <li key={idx} className="flex items-center gap-2 text-muted-foreground">
                         {/\.(mp4|mov|webm)$/i.test(fn) ? (
                           <Film className="h-3.5 w-3.5 text-primary shrink-0" />
                         ) : (
                           <ImageIcon className="h-3.5 w-3.5 text-emerald-400 shrink-0" />
                         )}
-                        <span className="truncate">{fn}</span>
+                        <span className="min-w-0 truncate">{fn}</span>
                       </li>
                     ))}
                   </ul>
