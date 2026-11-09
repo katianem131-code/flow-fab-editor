@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
-import { Link2, X, Loader2, User, Check, History } from "lucide-react";
+import { useRouter } from "@tanstack/react-router";
+import { Link2, X, Loader2, User, Check, History, CheckCircle2, Pencil, Plus } from "lucide-react";
 import {
   useImportSettings,
   loadHistory,
@@ -21,6 +22,7 @@ type Tab = "links" | "profile";
 type Found = { id: string; caption: string; duration: string; url: string };
 
 export function LinkImportDialog({ open, onClose }: { open: boolean; onClose: () => void }) {
+  const router = useRouter();
   const addFiles = useEditor((s) => s.addFiles);
   const [tab, setTab] = useState<Tab>("links");
   const [text, setText] = useState("");
@@ -31,16 +33,18 @@ export function LinkImportDialog({ open, onClose }: { open: boolean; onClose: ()
   const [msg, setMsg] = useState<string | null>(null);
   const [found, setFound] = useState<Found[]>([]);
   const [picked, setPicked] = useState<Set<string>>(new Set());
+  const [doneCount, setDoneCount] = useState(0);
 
   const links = useMemo(() => parseLinks(text), [text]);
   const settings = useImportSettings();
   const [history, setHistory] = useState<ImportHistoryEntry[]>([]);
-  useEffect(() => { if (open) setHistory(loadHistory()); }, [open]);
+  useEffect(() => { if (open) { setHistory(loadHistory()); setDoneCount(0); } }, [open]);
   if (!open) return null;
 
   const importLinks = async () => {
     setBusy(true);
     setMsg(null);
+    setDoneCount(0);
     const files: File[] = [];
     const fails: string[] = [];
     let i = 0;
@@ -57,7 +61,20 @@ export function LinkImportDialog({ open, onClose }: { open: boolean; onClose: ()
     if (files.length) addFiles(files);
     setHistory(pushHistory({ kind: "links", label: `${links.length} link(s)`, count: files.length }));
     setBusy(false);
+    if (files.length) setDoneCount(files.length);
     setMsg(`${files.length} vídeo(s) adicionado(s).` + (fails.length ? ` Falharam: ${fails.join(" · ")}` : ""));
+  };
+
+  const goToEditor = () => {
+    onClose();
+    router.navigate({ to: "/editor" });
+  };
+
+  const stayInBatch = () => {
+    setDoneCount(0);
+    setText("");
+    setMsg(null);
+    onClose();
   };
 
   const searchProfile = () => {
@@ -98,6 +115,32 @@ export function LinkImportDialog({ open, onClose }: { open: boolean; onClose: ()
             <X className="h-4 w-4" />
           </button>
         </div>
+
+        {doneCount > 0 && (
+          <div className="flex flex-col gap-2 rounded-lg border border-success/40 bg-success/10 p-3">
+            <p className="inline-flex items-center gap-1.5 text-xs font-semibold text-success">
+              <CheckCircle2 className="h-4 w-4" />
+              {doneCount} vídeo(s) adicionado(s) ao lote!
+            </p>
+            <p className="text-[11px] text-muted-foreground">
+              Seus vídeos já estão na fila. O que deseja fazer agora?
+            </p>
+            <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+              <button
+                onClick={goToEditor}
+                className="inline-flex items-center justify-center gap-2 rounded-md bg-primary px-3 py-2 text-xs font-semibold text-primary-foreground hover:brightness-110"
+              >
+                <Pencil className="h-3.5 w-3.5" /> Ir para o Editor agora
+              </button>
+              <button
+                onClick={stayInBatch}
+                className="inline-flex items-center justify-center gap-2 rounded-md border border-border bg-surface px-3 py-2 text-xs font-medium hover:border-primary/60"
+              >
+                <Plus className="h-3.5 w-3.5 text-primary" /> Continuar no lote
+              </button>
+            </div>
+          </div>
+        )}
 
         <div className="grid grid-cols-2 gap-1 rounded-md bg-background p-1 text-xs">
           {(["links", "profile"] as Tab[]).map((t) => (
