@@ -18,6 +18,12 @@ export function Header() {
         </Link>
         <nav className="flex items-center gap-2 text-sm">
           <Link
+            to="/descobrir"
+            className="rounded-md border border-border px-3 py-1.5 text-xs font-medium text-muted-foreground hover:text-foreground"
+          >
+            Descobrir
+          </Link>
+          <Link
             to="/agenda"
             className="rounded-md border border-border px-3 py-1.5 text-xs font-medium text-muted-foreground hover:text-foreground"
           >
@@ -36,7 +42,6 @@ export function Header() {
             Novo lote
           </Link>
         </nav>
-
       </div>
     </header>
   );
