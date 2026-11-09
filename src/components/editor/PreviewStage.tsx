@@ -1,6 +1,6 @@
 import { MaskPreviewLayer } from "./MasksTab";
 import { useEffect, useRef, useState } from "react";
-import { Play, Pause, Download, Film } from "lucide-react";
+import { Play, Pause, Download, Film, Upload } from "lucide-react";
 import { useEditor, effectiveBorders, titleTextForItem } from "@/lib/editor/store";
 import { useAntiDup } from "@/lib/editor/antidup";
 import { ASPECT_DIMS, TextOverlaySettings } from "@/lib/editor/types";
@@ -19,6 +19,9 @@ export function PreviewStage() {
   const isMirrored = antiDup.enabled && antiDup.mirror;
   const speed = antiDup.enabled ? antiDup.speed : 1;
   const b = item ? effectiveBorders(item, global) : global;
+  const batchName = useEditor((s) => s.batchName);
+  const addFiles = useEditor((s) => s.addFiles);
+  const emptyInputRef = useRef<HTMLInputElement>(null);
 
   const videoRef = useRef<HTMLVideoElement>(null);
   const video2Ref = useRef<HTMLVideoElement>(null);
@@ -135,8 +138,36 @@ export function PreviewStage() {
   if (!item) {
     return (
       <div className="flex h-full items-center justify-center p-6">
-        <div className="rounded-xl border border-dashed border-border bg-surface px-8 py-10 text-center text-sm text-muted-foreground lg:px-16 lg:py-24">
-          Envie um vídeo para ver o preview
+        <div className="flex flex-col items-center gap-3 rounded-xl border border-dashed border-border bg-surface px-8 py-12 text-center max-w-md shadow-sm">
+          <div className="grid h-12 w-12 place-items-center rounded-xl bg-primary/10 text-primary">
+            <Film className="h-6 w-6" />
+          </div>
+          <div className="space-y-1">
+            <h4 className="font-semibold text-foreground text-sm">
+              {batchName ? `Lote: ${batchName}` : "Nenhum vídeo no editor"}
+            </h4>
+            <p className="text-xs text-muted-foreground leading-relaxed">
+              {batchName
+                ? "Os arquivos deste lote não estão carregados na memória do navegador. Selecione os vídeos para continuar editando."
+                : "Envie um ou mais vídeos para ver o preview e começar a editar."}
+            </p>
+          </div>
+          <button
+            onClick={() => emptyInputRef.current?.click()}
+            className="mt-1 inline-flex items-center gap-1.5 rounded-lg bg-primary px-4 py-2 text-xs font-semibold text-primary-foreground shadow hover:opacity-90 transition cursor-pointer"
+          >
+            <Upload className="h-3.5 w-3.5" /> Adicionar vídeos ao lote
+          </button>
+          <input
+            ref={emptyInputRef}
+            type="file"
+            multiple
+            accept="video/mp4,video/quicktime,video/webm,.mp4,.mov,.webm"
+            hidden
+            onChange={(e) => {
+              if (e.target.files) addFiles(Array.from(e.target.files));
+            }}
+          />
         </div>
       </div>
     );
