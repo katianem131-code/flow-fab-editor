@@ -12,9 +12,7 @@ export type ViralReel = {
 };
 export type ViralComment = { id: string; text: string; likes: number; username: string };
 
-async function callApi(path: string, params: Record<string, string>, method: "GET" | "POST" = "GET") {
-  const key = process.env["RAPIDAPI_KEY"];
-  const host = process.env["RAPIDAPI_HOST"];
+async function callApi(key: string, host: string, path: string, params: Record<string, string>, method: "GET" | "POST" = "GET") {
   if (!key || !host) return { error: "Serviço de busca não configurado." };
   const qs = new URLSearchParams(params).toString();
   try {
@@ -22,7 +20,11 @@ async function callApi(path: string, params: Record<string, string>, method: "GE
     const res = method === "POST"
       ? await fetch(`https://${host}/${path}`, { method, headers: { ...headers, "Content-Type": "application/x-www-form-urlencoded" }, body: qs })
       : await fetch(`https://${host}/${path}?${qs}`, { headers });
-    const json = (await res.json().catch(() => null)) as unknown;
+    const json = (await res.json().catch(() => null)) as any;
+    const providerMessage = String(json?.message ?? json?.error ?? "");
+    if (/quota|limit|exceeded/i.test(providerMessage)) {
+      return { error: "A cota de buscas do seu plano no RapidAPI foi atingida. Ela renova no próximo ciclo ou pode ser ampliada no plano." };
+    }
     if (!res.ok) {
       console.error("rapidapi", path, res.status);
       return { error: res.status === 429 ? "Limite de buscas do plano atingido." : "Serviço indisponível no momento." };
@@ -62,12 +64,15 @@ export const searchVirals = createServerFn({ method: "POST" })
     return { mode: d.mode === "hashtag" ? "hashtag" : "profile", query } as const;
   })
   .handler(async ({ data }) => {
+    const key = process.env["RAPIDAPI_KEY"] ?? "";
+    const host = process.env["RAPIDAPI_HOST"] ?? "";
+    if (!key || !host) return { reels: [] as ViralReel[], error: "Serviço de busca não configurado." };
     const map = new Map<string, ViralReel>();
     // The provider intermittently answers "data not found"; retry a couple of times.
     for (let attempt = 0; attempt < 3 && map.size === 0; attempt++) {
       const r = data.mode === "profile"
-        ? await callApi("get_ig_user_reels.php", { username_or_url: data.query, amount: "24" }, "POST")
-        : await callApi("search_hashtag.php", { hashtag: data.query });
+        ? await callApi(key, host, "get_ig_user_reels.php", { username_or_url: data.query, amount: "24" }, "POST")
+        : await callApi(key, host, "search_hashtag.php", { hashtag: data.query });
       if ("error" in r) return { reels: [] as ViralReel[], error: r.error };
       collectReels(r.json, map);
     }
@@ -82,7 +87,10 @@ export const getTopComments = createServerFn({ method: "POST" })
     return { code };
   })
   .handler(async ({ data }) => {
-    const r = await callApi("get_post_comments.php", { media_code: data.code, sort_order: "popular" });
+    const key = process.env["RAPIDAPI_KEY"] ?? "";
+    const host = process.env["RAPIDAPI_HOST"] ?? "";
+    if (!key || !host) return { comments: [] as ViralComment[], error: "Serviço de busca não configurado." };
+    const r = await callApi(key, host, "get_post_comments.php", { media_code: data.code, sort_order: "popular" });
     if ("error" in r) return { comments: [] as ViralComment[], error: r.error };
     const list = ((r.json as any)?.comments ?? []) as any[];
     const comments: ViralComment[] = list
