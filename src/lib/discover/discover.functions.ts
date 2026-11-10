@@ -62,12 +62,15 @@ export const searchVirals = createServerFn({ method: "POST" })
     return { mode: d.mode === "hashtag" ? "hashtag" : "profile", query } as const;
   })
   .handler(async ({ data }) => {
-    const r = data.mode === "profile"
-      ? await callApi("get_ig_user_reels.php", { username_or_url: data.query, amount: "24" }, "POST")
-      : await callApi("search_hashtag.php", { hashtag: data.query });
-    if ("error" in r) return { reels: [] as ViralReel[], error: r.error };
     const map = new Map<string, ViralReel>();
-    collectReels(r.json, map);
+    // The provider intermittently answers "data not found"; retry a couple of times.
+    for (let attempt = 0; attempt < 3 && map.size === 0; attempt++) {
+      const r = data.mode === "profile"
+        ? await callApi("get_ig_user_reels.php", { username_or_url: data.query, amount: "24" }, "POST")
+        : await callApi("search_hashtag.php", { hashtag: data.query });
+      if ("error" in r) return { reels: [] as ViralReel[], error: r.error };
+      collectReels(r.json, map);
+    }
     const reels = [...map.values()].sort((a, b) => b.plays - a.plays || b.likes - a.likes);
     return { reels, error: reels.length ? undefined : "Nenhum vídeo encontrado (perfil privado, inexistente ou sem dados no momento)." };
   });
