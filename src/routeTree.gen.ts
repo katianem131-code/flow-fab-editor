@@ -13,6 +13,7 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as AdminRouteImport } from './routes/admin'
 import { Route as AgendaRouteImport } from './routes/agenda'
 import { Route as AnaliseRouteImport } from './routes/analise'
+import { Route as DescobrirRouteImport } from './routes/descobrir'
 import { Route as EditorRouteImport } from './routes/editor'
 import { Route as ApiPublicSocialVideoRouteImport } from './routes/api/public/social-video'
 
@@ -36,6 +37,11 @@ const AnaliseRoute = AnaliseRouteImport.update({
   path: '/analise',
   getParentRoute: () => rootRouteImport,
 } as any)
+const DescobrirRoute = DescobrirRouteImport.update({
+  id: '/descobrir',
+  path: '/descobrir',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const EditorRoute = EditorRouteImport.update({
   id: '/editor',
   path: '/editor',
@@ -52,6 +58,7 @@ export interface FileRoutesByFullPath {
   '/admin': typeof AdminRoute
   '/agenda': typeof AgendaRoute
   '/analise': typeof AnaliseRoute
+  '/descobrir': typeof DescobrirRoute
   '/editor': typeof EditorRoute
   '/api/public/social-video': typeof ApiPublicSocialVideoRoute
 }
@@ -60,6 +67,7 @@ export interface FileRoutesByTo {
   '/admin': typeof AdminRoute
   '/agenda': typeof AgendaRoute
   '/analise': typeof AnaliseRoute
+  '/descobrir': typeof DescobrirRoute
   '/editor': typeof EditorRoute
   '/api/public/social-video': typeof ApiPublicSocialVideoRoute
 }
@@ -69,6 +77,7 @@ export interface FileRoutesById {
   '/admin': typeof AdminRoute
   '/agenda': typeof AgendaRoute
   '/analise': typeof AnaliseRoute
+  '/descobrir': typeof DescobrirRoute
   '/editor': typeof EditorRoute
   '/api/public/social-video': typeof ApiPublicSocialVideoRoute
 }
@@ -79,6 +88,7 @@ export interface FileRouteTypes {
     | '/admin'
     | '/agenda'
     | '/analise'
+    | '/descobrir'
     | '/editor'
     | '/api/public/social-video'
   fileRoutesByTo: FileRoutesByTo
@@ -87,6 +97,7 @@ export interface FileRouteTypes {
     | '/admin'
     | '/agenda'
     | '/analise'
+    | '/descobrir'
     | '/editor'
     | '/api/public/social-video'
   id:
@@ -95,6 +106,7 @@ export interface FileRouteTypes {
     | '/admin'
     | '/agenda'
     | '/analise'
+    | '/descobrir'
     | '/editor'
     | '/api/public/social-video'
   fileRoutesById: FileRoutesById
@@ -104,6 +116,7 @@ export interface RootRouteChildren {
   AdminRoute: typeof AdminRoute
   AgendaRoute: typeof AgendaRoute
   AnaliseRoute: typeof AnaliseRoute
+  DescobrirRoute: typeof DescobrirRoute
   EditorRoute: typeof EditorRoute
   ApiPublicSocialVideoRoute: typeof ApiPublicSocialVideoRoute
 }
@@ -138,6 +151,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AnaliseRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/descobrir': {
+      id: '/descobrir'
+      path: '/descobrir'
+      fullPath: '/descobrir'
+      preLoaderRoute: typeof DescobrirRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/editor': {
       id: '/editor'
       path: '/editor'
@@ -160,6 +180,7 @@ const rootRouteChildren: RootRouteChildren = {
   AdminRoute: AdminRoute,
   AgendaRoute: AgendaRoute,
   AnaliseRoute: AnaliseRoute,
+  DescobrirRoute: DescobrirRoute,
   EditorRoute: EditorRoute,
   ApiPublicSocialVideoRoute: ApiPublicSocialVideoRoute,
 }
