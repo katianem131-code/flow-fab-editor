@@ -12,15 +12,16 @@ export type ViralReel = {
 };
 export type ViralComment = { id: string; text: string; likes: number; username: string };
 
-async function callApi(path: string, params: Record<string, string>) {
+async function callApi(path: string, params: Record<string, string>, method: "GET" | "POST" = "GET") {
   const key = process.env["RAPIDAPI_KEY"];
   const host = process.env["RAPIDAPI_HOST"];
   if (!key || !host) return { error: "Serviço de busca não configurado." };
   const qs = new URLSearchParams(params).toString();
   try {
-    const res = await fetch(`https://${host}/${path}?${qs}`, {
-      headers: { "x-rapidapi-key": key, "x-rapidapi-host": host },
-    });
+    const headers: Record<string, string> = { "x-rapidapi-key": key, "x-rapidapi-host": host };
+    const res = method === "POST"
+      ? await fetch(`https://${host}/${path}`, { method, headers: { ...headers, "Content-Type": "application/x-www-form-urlencoded" }, body: qs })
+      : await fetch(`https://${host}/${path}?${qs}`, { headers });
     const json = (await res.json().catch(() => null)) as unknown;
     if (!res.ok) {
       console.error("rapidapi", path, res.status);
@@ -62,7 +63,7 @@ export const searchVirals = createServerFn({ method: "POST" })
   })
   .handler(async ({ data }) => {
     const r = data.mode === "profile"
-      ? await callApi("get_ig_user_reels.php", { username_or_url: data.query, amount: "24" })
+      ? await callApi("get_ig_user_reels.php", { username_or_url: data.query, amount: "24" }, "POST")
       : await callApi("search_hashtag.php", { hashtag: data.query });
     if ("error" in r) return { reels: [] as ViralReel[], error: r.error };
     const map = new Map<string, ViralReel>();
