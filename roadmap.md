@@ -4,3 +4,4 @@
 - [x] Keep the mobile video preview visible while scrolling and using adjustment controls; verify with an uploaded video.
 - [x] Add Instagram scheduling UI (inline form + /agenda) using LabRemix colors.- [x] Add /descobrir with profile/hashtag search, reel metrics, headline comments, editor import and server-side RapidAPI secrets.
 - [ ] Verify hashtag search and editor import after RapidAPI monthly quota renews (quota exhausted during tests).
+- [x] Add subject and similar-profile search modes to /descobrir (live verification pending RapidAPI quota renewal).

@@ -57,11 +57,14 @@ function collectReels(node: unknown, out: Map<string, ViralReel>, depth = 0) {
   for (const v of Object.values(o)) collectReels(v, out, depth + 1);
 }
 
+export type ViralMode = "subject" | "profile" | "hashtag";
+
 export const searchVirals = createServerFn({ method: "POST" })
-  .inputValidator((d: { mode: "profile" | "hashtag"; query: string }) => {
+  .inputValidator((d: { mode: ViralMode; query: string }) => {
     const query = String(d.query ?? "").trim().replace(/^[@#]/, "").slice(0, 80);
     if (!query) throw new Error("Digite um termo de busca");
-    return { mode: d.mode === "hashtag" ? "hashtag" : "profile", query } as const;
+    const mode: ViralMode = d.mode === "hashtag" || d.mode === "subject" ? d.mode : "profile";
+    return { mode, query };
   })
   .handler(async ({ data }) => {
     const key = process.env["RAPIDAPI_KEY"] ?? "";
@@ -72,13 +75,57 @@ export const searchVirals = createServerFn({ method: "POST" })
     for (let attempt = 0; attempt < 3 && map.size === 0; attempt++) {
       const r = data.mode === "profile"
         ? await callApi(key, host, "get_ig_user_reels.php", { username_or_url: data.query, amount: "24" }, "POST")
-        : await callApi(key, host, "search_hashtag.php", { hashtag: data.query });
+        : data.mode === "hashtag"
+          ? await callApi(key, host, "search_hashtag.php", { hashtag: data.query })
+          : await callApi(key, host, "search_ig.php", { search_query: data.query }, "POST");
       if ("error" in r) return { reels: [] as ViralReel[], error: r.error };
       collectReels(r.json, map);
     }
     const reels = [...map.values()].sort((a, b) => b.plays - a.plays || b.likes - a.likes);
     return { reels, error: reels.length ? undefined : "Nenhum vídeo encontrado (perfil privado, inexistente ou sem dados no momento)." };
   });
+
+export type SimilarProfile = { username: string; fullName: string; avatar: string; followers: number };
+
+export const findSimilarProfiles = createServerFn({ method: "POST" })
+  .inputValidator((d: { query: string }) => {
+    const query = String(d.query ?? "").trim().replace(/^@/, "").slice(0, 80);
+    if (!query) throw new Error("Digite um perfil");
+    return { query };
+  })
+  .handler(async ({ data }) => {
+    const key = process.env["RAPIDAPI_KEY"] ?? "";
+    const host = process.env["RAPIDAPI_HOST"] ?? "";
+    if (!key || !host) return { profiles: [] as SimilarProfile[], error: "Serviço de busca não configurado." };
+    const found = new Map<string, SimilarProfile>();
+    for (let attempt = 0; attempt < 3 && found.size === 0; attempt++) {
+      const r = await callApi(key, host, "get_ig_similar_accounts.php", { username_or_url: data.query }, "POST");
+      if ("error" in r) return { profiles: [] as SimilarProfile[], error: r.error };
+      collectProfiles(r.json, found);
+      found.delete(data.query.toLowerCase());
+    }
+    const profiles = [...found.values()].sort((a, b) => b.followers - a.followers).slice(0, 30);
+    return { profiles, error: profiles.length ? undefined : "Nenhum perfil parecido encontrado." };
+  });
+
+function collectProfiles(node: unknown, out: Map<string, SimilarProfile>, depth = 0) {
+  if (!node || typeof node !== "object" || depth > 10) return;
+  if (Array.isArray(node)) { for (const n of node) collectProfiles(n, out, depth + 1); return; }
+  const o = node as Record<string, any>;
+  if (typeof o.username === "string" && o.username && "profile_pic_url" in o) {
+    const key = o.username.toLowerCase();
+    if (!out.has(key)) {
+      out.set(key, {
+        username: o.username,
+        fullName: o.full_name ?? "",
+        avatar: o.profile_pic_url ?? "",
+        followers: Number(o.follower_count ?? o.followers ?? 0) || 0,
+      });
+    }
+    return;
+  }
+  for (const v of Object.values(o)) collectProfiles(v, out, depth + 1);
+}
 
 export const getTopComments = createServerFn({ method: "POST" })
   .inputValidator((d: { code: string }) => {
