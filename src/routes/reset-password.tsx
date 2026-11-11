@@ -1,7 +1,6 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useState, type FormEvent } from "react";
 import { toast } from "sonner";
-import { Toaster } from "@/components/ui/sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -36,7 +35,6 @@ function ResetPage() {
   }
   return (
     <div className="flex min-h-screen items-center justify-center bg-background px-4">
-      <Toaster />
       <form onSubmit={submit} className="w-full max-w-sm space-y-3 rounded-xl border border-border bg-card p-6">
         <h1 className="text-xl font-semibold">Definir nova senha</h1>
         <div className="space-y-1">

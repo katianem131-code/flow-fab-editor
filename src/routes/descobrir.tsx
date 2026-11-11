@@ -1,7 +1,7 @@
 import { createFileRoute, useRouter } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
-import { Toaster, toast } from "sonner";
+import { toast } from "sonner";
 import { Search, Lightbulb, Eye, Heart, MessageCircle, Loader2, Copy, Type, Download, X, Check } from "lucide-react";
 import { Header } from "@/components/editor/Header";
 import { searchVirals, getTopComments, findSimilarProfiles, type ViralReel, type ViralComment, type ViralMode, type SimilarProfile } from "@/lib/discover/discover.functions";
@@ -71,7 +71,6 @@ function DiscoverPage() {
 
   return (
     <div className="min-h-screen bg-background text-foreground">
-      <Toaster richColors position="top-center" />
       <Header />
       <main className="mx-auto max-w-[1400px] px-3 py-6 sm:px-6">
         <h1 className="text-xl font-semibold">Descobrir virais</h1>

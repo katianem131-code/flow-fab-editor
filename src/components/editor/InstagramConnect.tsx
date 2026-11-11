@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { Instagram, Trash2 } from "lucide-react";
 import { toast } from "sonner";
+import { useNavigate } from "@tanstack/react-router";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { getMetaConfig, startMetaConnect } from "@/lib/meta/meta.functions";
@@ -16,6 +17,7 @@ const MSG: Record<string, string> = {
 
 export function InstagramConnect() {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const [accs, setAccs] = useState<Acc[]>([]);
   const [configured, setConfigured] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -30,7 +32,7 @@ export function InstagramConnect() {
   }, []);
 
   async function connect() {
-    if (!user) return toast.error("Entre na sua conta primeiro.");
+    if (!user) { toast.error("Entre na sua conta para conectar o Instagram."); return navigate({ to: "/auth" }); }
     if (!configured) return toast.error(MSG["nao-configurado"]);
     setBusy(true);
     try { const result = await startMetaConnect({ data: { origin: window.location.origin } }); window.location.assign(result.url); }

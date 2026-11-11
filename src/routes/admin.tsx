@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
-import { Toaster, toast } from "sonner";
+import { toast } from "sonner";
 import { Lock, KeyRound, ShieldCheck, Loader2, Unlock } from "lucide-react";
 import { Header } from "@/components/editor/Header";
 import { useAI, AIProvider, PROVIDER_DEFAULTS } from "@/lib/ai/settings";
@@ -106,7 +106,6 @@ function AdminPage() {
           <Gate />
         )}
       </main>
-      <Toaster theme="dark" richColors position="top-center" />
     </div>
   );
 }

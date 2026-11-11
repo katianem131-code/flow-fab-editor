@@ -5,7 +5,6 @@ import { BatchMaterialsBar } from "@/components/editor/BatchMaterialsBar";
 import { PreviewStage } from "@/components/editor/PreviewStage";
 import { EditPanel } from "@/components/editor/EditPanel";
 import { ProcessBar } from "@/components/editor/ProcessBar";
-import { Toaster } from "sonner";
 
 export const Route = createFileRoute("/editor")({
   head: () => ({
@@ -48,7 +47,6 @@ function EditorPage() {
           <ProcessBar />
         </aside>
       </div>
-      <Toaster theme="dark" richColors position="top-center" />
     </div>
   );
 }

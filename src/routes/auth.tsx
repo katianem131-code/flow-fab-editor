@@ -2,7 +2,6 @@ import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
 import { useEffect, useState, type FormEvent } from "react";
 import { Scissors } from "lucide-react";
 import { toast } from "sonner";
-import { Toaster } from "@/components/ui/sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
@@ -75,7 +74,6 @@ function AuthPage() {
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-background px-4">
-      <Toaster />
       <div className="w-full max-w-sm rounded-xl border border-border bg-card p-6 shadow-lg">
         <Link to="/" className="mb-6 flex items-center gap-2">
           <span className="grid h-9 w-9 place-items-center rounded-md bg-primary text-primary-foreground">
