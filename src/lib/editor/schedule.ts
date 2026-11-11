@@ -15,6 +15,7 @@ export interface ScheduledPost {
   coverSecond: number;
   status: PostStatus;
   createdAt: string;
+  videoPath?: string; // caminho do vídeo processado na nuvem
 }
 
 export const STATUS_LABEL: Record<PostStatus, string> = {

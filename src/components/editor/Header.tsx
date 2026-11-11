@@ -1,6 +1,7 @@
 import { Link } from "@tanstack/react-router";
 import { Scissors } from "lucide-react";
 import { UserMenu } from "./UserMenu";
+import { CreditsBadge } from "./CreditsBadge";
 
 export function Header() {
   return (
@@ -42,6 +43,7 @@ export function Header() {
           >
             Novo lote
           </Link>
+          <CreditsBadge />
           <UserMenu />
         </nav>
 

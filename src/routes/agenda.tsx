@@ -2,6 +2,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import { CalendarCheck, Trash2, Plus } from "lucide-react";
 import { Header } from "@/components/editor/Header";
+import { InstagramConnect } from "@/components/editor/InstagramConnect";
 import {
   useSchedule,
   countByStatus,
@@ -132,6 +133,8 @@ function AgendaPage() {
           </Link>
         </div>
 
+        <InstagramConnect />
+
         <div className="grid gap-3 md:grid-cols-[1fr_280px]">
           <section className="rounded-xl border border-border bg-gradient-to-br from-surface to-background p-5">
             <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">Próxima publicação</p>
@@ -197,7 +200,7 @@ function AgendaPage() {
           )}
         </section>
         <p className="text-center text-[11px] text-muted-foreground">
-          Os agendamentos ficam salvos neste navegador. A publicação automática no Instagram será ativada na próxima etapa.
+          Posts agendados com uma conta conectada são publicados automaticamente no horário escolhido.
         </p>
       </main>
     </div>

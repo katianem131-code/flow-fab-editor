@@ -148,7 +148,7 @@ export async function cloudUpsertPost(p: ScheduledPost) {
     caption: p.caption,
     status: toDbStatus(p.status),
     created_at: p.createdAt,
-    details: { videoName: p.videoName, headline: p.headline, accounts: p.accounts, coverSecond: p.coverSecond },
+    details: { videoName: p.videoName, headline: p.headline, accounts: p.accounts, coverSecond: p.coverSecond, videoPath: p.videoPath },
   });
   warn("save post", error);
 }
@@ -176,6 +176,22 @@ export async function cloudFetchPosts(): Promise<ScheduledPost[] | null> {
       coverSecond: Number(d.coverSecond ?? 1),
       status: fromDbStatus(r.status),
       createdAt: r.created_at,
+      videoPath: typeof d.videoPath === "string" ? d.videoPath : undefined,
     };
   });
+}
+
+/** Envia o vídeo processado de um post para a nuvem (necessário para postar no Instagram). */
+export async function cloudUploadPostVideo(blobUrl: string, name: string): Promise<string | null> {
+  const uid = await currentUserId();
+  if (!uid) return null;
+  try {
+    const blob = await (await fetch(blobUrl)).blob();
+    const path = `${uid}/posts/${crypto.randomUUID()}-${safeName(name || "video.mp4")}`;
+    const { error } = await supabase.storage.from(VIDEO_BUCKET).upload(path, blob, { contentType: blob.type || "video/mp4" });
+    if (error) return warn("upload post video", error), null;
+    return path;
+  } catch (e) {
+    return warn("upload post video", e), null;
+  }
 }

@@ -16,8 +16,12 @@ import { Route as AnaliseRouteImport } from './routes/analise'
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as DescobrirRouteImport } from './routes/descobrir'
 import { Route as EditorRouteImport } from './routes/editor'
+import { Route as PlanosRouteImport } from './routes/planos'
 import { Route as ResetPasswordRouteImport } from './routes/reset-password'
+import { Route as ApiPublicCronPublishRouteImport } from './routes/api/public/cron-publish'
+import { Route as ApiPublicPaymentWebhookRouteImport } from './routes/api/public/payment-webhook'
 import { Route as ApiPublicSocialVideoRouteImport } from './routes/api/public/social-video'
+import { Route as ApiPublicMetaCallbackRouteImport } from './routes/api/public/meta/callback'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -54,14 +58,34 @@ const EditorRoute = EditorRouteImport.update({
   path: '/editor',
   getParentRoute: () => rootRouteImport,
 } as any)
+const PlanosRoute = PlanosRouteImport.update({
+  id: '/planos',
+  path: '/planos',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ResetPasswordRoute = ResetPasswordRouteImport.update({
   id: '/reset-password',
   path: '/reset-password',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiPublicCronPublishRoute = ApiPublicCronPublishRouteImport.update({
+  id: '/api/public/cron-publish',
+  path: '/api/public/cron-publish',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiPublicPaymentWebhookRoute = ApiPublicPaymentWebhookRouteImport.update({
+  id: '/api/public/payment-webhook',
+  path: '/api/public/payment-webhook',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiPublicSocialVideoRoute = ApiPublicSocialVideoRouteImport.update({
   id: '/api/public/social-video',
   path: '/api/public/social-video',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiPublicMetaCallbackRoute = ApiPublicMetaCallbackRouteImport.update({
+  id: '/api/public/meta/callback',
+  path: '/api/public/meta/callback',
   getParentRoute: () => rootRouteImport,
 } as any)
 
@@ -73,8 +97,12 @@ export interface FileRoutesByFullPath {
   '/auth': typeof AuthRoute
   '/descobrir': typeof DescobrirRoute
   '/editor': typeof EditorRoute
+  '/planos': typeof PlanosRoute
   '/reset-password': typeof ResetPasswordRoute
+  '/api/public/cron-publish': typeof ApiPublicCronPublishRoute
+  '/api/public/payment-webhook': typeof ApiPublicPaymentWebhookRoute
   '/api/public/social-video': typeof ApiPublicSocialVideoRoute
+  '/api/public/meta/callback': typeof ApiPublicMetaCallbackRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -84,8 +112,12 @@ export interface FileRoutesByTo {
   '/auth': typeof AuthRoute
   '/descobrir': typeof DescobrirRoute
   '/editor': typeof EditorRoute
+  '/planos': typeof PlanosRoute
   '/reset-password': typeof ResetPasswordRoute
+  '/api/public/cron-publish': typeof ApiPublicCronPublishRoute
+  '/api/public/payment-webhook': typeof ApiPublicPaymentWebhookRoute
   '/api/public/social-video': typeof ApiPublicSocialVideoRoute
+  '/api/public/meta/callback': typeof ApiPublicMetaCallbackRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -96,8 +128,12 @@ export interface FileRoutesById {
   '/auth': typeof AuthRoute
   '/descobrir': typeof DescobrirRoute
   '/editor': typeof EditorRoute
+  '/planos': typeof PlanosRoute
   '/reset-password': typeof ResetPasswordRoute
+  '/api/public/cron-publish': typeof ApiPublicCronPublishRoute
+  '/api/public/payment-webhook': typeof ApiPublicPaymentWebhookRoute
   '/api/public/social-video': typeof ApiPublicSocialVideoRoute
+  '/api/public/meta/callback': typeof ApiPublicMetaCallbackRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -109,8 +145,12 @@ export interface FileRouteTypes {
     | '/auth'
     | '/descobrir'
     | '/editor'
+    | '/planos'
     | '/reset-password'
+    | '/api/public/cron-publish'
+    | '/api/public/payment-webhook'
     | '/api/public/social-video'
+    | '/api/public/meta/callback'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -120,8 +160,12 @@ export interface FileRouteTypes {
     | '/auth'
     | '/descobrir'
     | '/editor'
+    | '/planos'
     | '/reset-password'
+    | '/api/public/cron-publish'
+    | '/api/public/payment-webhook'
     | '/api/public/social-video'
+    | '/api/public/meta/callback'
   id:
     | '__root__'
     | '/'
@@ -131,8 +175,12 @@ export interface FileRouteTypes {
     | '/auth'
     | '/descobrir'
     | '/editor'
+    | '/planos'
     | '/reset-password'
+    | '/api/public/cron-publish'
+    | '/api/public/payment-webhook'
     | '/api/public/social-video'
+    | '/api/public/meta/callback'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -143,8 +191,12 @@ export interface RootRouteChildren {
   AuthRoute: typeof AuthRoute
   DescobrirRoute: typeof DescobrirRoute
   EditorRoute: typeof EditorRoute
+  PlanosRoute: typeof PlanosRoute
   ResetPasswordRoute: typeof ResetPasswordRoute
+  ApiPublicCronPublishRoute: typeof ApiPublicCronPublishRoute
+  ApiPublicPaymentWebhookRoute: typeof ApiPublicPaymentWebhookRoute
   ApiPublicSocialVideoRoute: typeof ApiPublicSocialVideoRoute
+  ApiPublicMetaCallbackRoute: typeof ApiPublicMetaCallbackRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -198,6 +250,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof EditorRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/planos': {
+      id: '/planos'
+      path: '/planos'
+      fullPath: '/planos'
+      preLoaderRoute: typeof PlanosRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/reset-password': {
       id: '/reset-password'
       path: '/reset-password'
@@ -205,11 +264,32 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ResetPasswordRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/cron-publish': {
+      id: '/api/public/cron-publish'
+      path: '/api/public/cron-publish'
+      fullPath: '/api/public/cron-publish'
+      preLoaderRoute: typeof ApiPublicCronPublishRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/payment-webhook': {
+      id: '/api/public/payment-webhook'
+      path: '/api/public/payment-webhook'
+      fullPath: '/api/public/payment-webhook'
+      preLoaderRoute: typeof ApiPublicPaymentWebhookRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/social-video': {
       id: '/api/public/social-video'
       path: '/api/public/social-video'
       fullPath: '/api/public/social-video'
       preLoaderRoute: typeof ApiPublicSocialVideoRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/meta/callback': {
+      id: '/api/public/meta/callback'
+      path: '/api/public/meta/callback'
+      fullPath: '/api/public/meta/callback'
+      preLoaderRoute: typeof ApiPublicMetaCallbackRouteImport
       parentRoute: typeof rootRouteImport
     }
   }
@@ -223,8 +303,12 @@ const rootRouteChildren: RootRouteChildren = {
   AuthRoute: AuthRoute,
   DescobrirRoute: DescobrirRoute,
   EditorRoute: EditorRoute,
+  PlanosRoute: PlanosRoute,
   ResetPasswordRoute: ResetPasswordRoute,
+  ApiPublicCronPublishRoute: ApiPublicCronPublishRoute,
+  ApiPublicPaymentWebhookRoute: ApiPublicPaymentWebhookRoute,
   ApiPublicSocialVideoRoute: ApiPublicSocialVideoRoute,
+  ApiPublicMetaCallbackRoute: ApiPublicMetaCallbackRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

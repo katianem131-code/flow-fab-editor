@@ -2,6 +2,8 @@ import { useEffect, useState } from "react";
 import { CalendarClock, Zap, Plus, Sparkles } from "lucide-react";
 import { toast } from "sonner";
 import { useSchedule, FORMAT_LABEL, type PostFormat } from "@/lib/editor/schedule";
+import { cloudUploadPostVideo } from "@/lib/cloud/sync";
+import { supabase } from "@/integrations/supabase/client";
 
 const field =
   "w-full rounded-md border border-border bg-background px-2 py-1.5 text-xs focus:border-primary focus:outline-none";
@@ -36,15 +38,27 @@ export function ScheduleForm({
   const [time, setTime] = useState(init.time);
   const [caption, setCaption] = useState("");
   const [cover, setCover] = useState(1);
+  const [busy, setBusy] = useState(false);
+  const [igAccounts, setIgAccounts] = useState<string[]>([]);
+  useEffect(() => {
+    supabase.from("instagram_accounts").select("username").then(({ data }) =>
+      setIgAccounts((data ?? []).map((a) => `@${a.username}`).filter(Boolean)),
+    );
+  }, []);
+  const allAccounts = [...new Set([...igAccounts, ...accounts])];
 
   const toggle = (a: string) =>
     setSelected((s) => (s.includes(a) ? s.filter((x) => x !== a) : [...s, a]));
 
-  const submit = (now: boolean) => {
+  const submit = async (now: boolean) => {
     if (selected.length === 0) return toast.error("Escolha ao menos uma conta.");
     const publishAt = now ? new Date() : new Date(`${date}T${time}`);
     if (!now && publishAt < new Date()) return toast.error("Escolha um horário futuro.");
+    setBusy(true);
+    const videoPath = previewUrl ? await cloudUploadPostVideo(previewUrl, videoName) : null;
+    setBusy(false);
     addPost({
+      videoPath: videoPath ?? undefined,
       videoName,
       headline,
       caption,
@@ -63,7 +77,7 @@ export function ScheduleForm({
       <div>
         <p className="mb-1 text-[11px] text-muted-foreground">Publicar em (uma ou mais)</p>
         <div className="flex flex-wrap gap-1.5">
-          {accounts.map((a) => (
+          {allAccounts.map((a) => (
             <button
               key={a}
               type="button"
@@ -156,14 +170,14 @@ export function ScheduleForm({
       <div className="flex flex-wrap gap-2">
         <button
           type="button"
-          onClick={() => submit(false)}
+          disabled={busy} onClick={() => submit(false)}
           className="inline-flex items-center gap-1 rounded-md bg-success px-3 py-1.5 text-xs font-semibold text-success-foreground hover:opacity-90"
         >
           <CalendarClock className="h-3 w-3" /> Confirmar
         </button>
         <button
           type="button"
-          onClick={() => submit(true)}
+          disabled={busy} onClick={() => submit(true)}
           className="inline-flex items-center gap-1 rounded-md border border-primary px-3 py-1.5 text-xs font-semibold text-primary"
         >
           <Zap className="h-3 w-3" /> Publicar agora
