@@ -19,6 +19,7 @@ export const Route = createFileRoute("/api/public/cron-publish")({ server: { han
     try {
       const { data: destinations, error } = await db.from("instagram_post_destinations").select("*")
         .eq("post_id", post.id).eq("user_id", post.user_id).not("phase", "in", '("published","failed")')
+        .or("phase.neq.unknown,and(container_id.not.is.null,attempts.lt.8)")
         .lte("next_attempt_at", new Date().toISOString()).order("next_attempt_at").limit(1);
       if (error) throw new Error("destinations_read");
       const row = destinations?.[0];
@@ -78,7 +79,7 @@ export const Route = createFileRoute("/api/public/cron-publish")({ server: { han
           });
         } catch (e) {
           const g = e instanceof GraphError ? e : new GraphError("preflight_failed", true, false);
-          await save(d.phase, { phase: g.recoverable && d.attempts < 8 ? d.phase : "failed", error_code: g.code,
+          await save(d.phase, { phase: d.phase === "unknown" ? "unknown" : g.recoverable && d.attempts < 8 ? d.phase : "failed", error_code: g.code,
             next_attempt_at: new Date(Date.now() + backoff(d.attempts, g.retryAfter) * 1000).toISOString() });
         }
       }

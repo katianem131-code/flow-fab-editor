@@ -31,7 +31,9 @@ export async function inspectToken(base: string, token: string, appId: string, s
   const schema = z.object({ is_valid: z.literal(true), app_id: z.string(), user_id: z.string(),
     expires_at: z.number(), data_access_expires_at: z.number().optional(), scopes: z.array(z.string()),
     granular_scopes: z.array(z.object({ scope: z.string(), target_ids: z.array(z.string()).optional() })).optional() });
-  const data = schema.parse(result.data);
+  const parsed = schema.safeParse(result.data);
+  if (!parsed.success) throw new GraphError("reconnect", false, false);
+  const data = parsed.data;
   if (data.app_id !== appId || (data.expires_at && data.expires_at * 1000 <= Date.now()) ||
     (data.data_access_expires_at && data.data_access_expires_at * 1000 <= Date.now()) ||
     !PUBLICATION_PERMISSIONS.every((s) => data.scopes.includes(s))) throw new GraphError("reconnect", false, false);
@@ -41,7 +43,7 @@ export async function inspectToken(base: string, token: string, appId: string, s
 export async function discoverAccounts(base: string, token: string, kind: "user" | "system_user", debug: Awaited<ReturnType<typeof inspectToken>>) {
   const pageSchema = z.object({ id: z.string(), name: z.string().optional(), access_token: z.string().optional(),
     instagram_business_account: z.object({ id: z.string(), username: z.string().optional(), profile_picture_url: z.string().optional() }).optional() });
-  const fields = "id,name,access_token,instagram_business_account{id,username,profile_picture_url}";
+  const fields = kind === "system_user" ? "id,name,instagram_business_account{id,username,profile_picture_url}" : "id,name,access_token,instagram_business_account{id,username,profile_picture_url}";
   if (kind === "system_user") {
     // SUAT assets are explicitly delegated; do not assume /me/accounts has Facebook User semantics.
     const ids = [...new Set((debug.granular_scopes ?? []).filter((s) => s.scope === "pages_show_list" || s.scope === "pages_read_engagement").flatMap((s) => s.target_ids ?? []))];

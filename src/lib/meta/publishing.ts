@@ -29,6 +29,7 @@ export async function stepDestination(d: Destination, io: PublishingIO, now = Da
       if (status === "PUBLISHED") await io.save(d.phase, { phase: "published", error_code: d.media_id ? undefined : "published_id_unresolved" });
       else if (status === "ERROR" || status === "EXPIRED") await io.save(d.phase, { phase: "failed", error_code: `container_${status.toLowerCase()}` });
       else if (status === "FINISHED" && d.phase !== "unknown") await io.save(d.phase, { phase: "ready", next_attempt_at: later(60) });
+      else if (d.phase === "processing" && d.attempts >= 6) await io.save(d.phase, { phase: "failed", error_code: "processing_timeout" });
       else await io.save(d.phase, { phase: d.phase, error_code: d.phase === "unknown" ? "publication_unconfirmed" : undefined, next_attempt_at: later(backoff(d.attempts)) });
     } else if (d.phase === "ready" && d.container_id) {
       const container = d.container_id;
