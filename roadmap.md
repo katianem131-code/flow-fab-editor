@@ -5,3 +5,6 @@
 - [x] Add Instagram scheduling UI (inline form + /agenda) using LabRemix colors.- [x] Add /descobrir with profile/hashtag search, reel metrics, headline comments, editor import and server-side RapidAPI secrets.
 - [ ] Verify hashtag search and editor import after RapidAPI monthly quota renews (quota exhausted during tests).
 - [x] Add subject and similar-profile search modes to /descobrir (live verification pending RapidAPI quota renewal).
+- [ ] Harden Meta business OAuth, atomic state/session binding, and minimal permissions without executing consent.
+- [ ] Implement leased, resumable, per-account Instagram publishing with ownership checks and unknown-write reconciliation.
+- [ ] Execute offline regression tests and verify preview compilation; document manual configuration without deployment.
