@@ -13,8 +13,10 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as AdminRouteImport } from './routes/admin'
 import { Route as AgendaRouteImport } from './routes/agenda'
 import { Route as AnaliseRouteImport } from './routes/analise'
+import { Route as AuthRouteImport } from './routes/auth'
 import { Route as DescobrirRouteImport } from './routes/descobrir'
 import { Route as EditorRouteImport } from './routes/editor'
+import { Route as ResetPasswordRouteImport } from './routes/reset-password'
 import { Route as ApiPublicSocialVideoRouteImport } from './routes/api/public/social-video'
 
 const IndexRoute = IndexRouteImport.update({
@@ -37,6 +39,11 @@ const AnaliseRoute = AnaliseRouteImport.update({
   path: '/analise',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AuthRoute = AuthRouteImport.update({
+  id: '/auth',
+  path: '/auth',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const DescobrirRoute = DescobrirRouteImport.update({
   id: '/descobrir',
   path: '/descobrir',
@@ -45,6 +52,11 @@ const DescobrirRoute = DescobrirRouteImport.update({
 const EditorRoute = EditorRouteImport.update({
   id: '/editor',
   path: '/editor',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ResetPasswordRoute = ResetPasswordRouteImport.update({
+  id: '/reset-password',
+  path: '/reset-password',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiPublicSocialVideoRoute = ApiPublicSocialVideoRouteImport.update({
@@ -58,8 +70,10 @@ export interface FileRoutesByFullPath {
   '/admin': typeof AdminRoute
   '/agenda': typeof AgendaRoute
   '/analise': typeof AnaliseRoute
+  '/auth': typeof AuthRoute
   '/descobrir': typeof DescobrirRoute
   '/editor': typeof EditorRoute
+  '/reset-password': typeof ResetPasswordRoute
   '/api/public/social-video': typeof ApiPublicSocialVideoRoute
 }
 export interface FileRoutesByTo {
@@ -67,8 +81,10 @@ export interface FileRoutesByTo {
   '/admin': typeof AdminRoute
   '/agenda': typeof AgendaRoute
   '/analise': typeof AnaliseRoute
+  '/auth': typeof AuthRoute
   '/descobrir': typeof DescobrirRoute
   '/editor': typeof EditorRoute
+  '/reset-password': typeof ResetPasswordRoute
   '/api/public/social-video': typeof ApiPublicSocialVideoRoute
 }
 export interface FileRoutesById {
@@ -77,8 +93,10 @@ export interface FileRoutesById {
   '/admin': typeof AdminRoute
   '/agenda': typeof AgendaRoute
   '/analise': typeof AnaliseRoute
+  '/auth': typeof AuthRoute
   '/descobrir': typeof DescobrirRoute
   '/editor': typeof EditorRoute
+  '/reset-password': typeof ResetPasswordRoute
   '/api/public/social-video': typeof ApiPublicSocialVideoRoute
 }
 export interface FileRouteTypes {
@@ -88,8 +106,10 @@ export interface FileRouteTypes {
     | '/admin'
     | '/agenda'
     | '/analise'
+    | '/auth'
     | '/descobrir'
     | '/editor'
+    | '/reset-password'
     | '/api/public/social-video'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -97,8 +117,10 @@ export interface FileRouteTypes {
     | '/admin'
     | '/agenda'
     | '/analise'
+    | '/auth'
     | '/descobrir'
     | '/editor'
+    | '/reset-password'
     | '/api/public/social-video'
   id:
     | '__root__'
@@ -106,8 +128,10 @@ export interface FileRouteTypes {
     | '/admin'
     | '/agenda'
     | '/analise'
+    | '/auth'
     | '/descobrir'
     | '/editor'
+    | '/reset-password'
     | '/api/public/social-video'
   fileRoutesById: FileRoutesById
 }
@@ -116,8 +140,10 @@ export interface RootRouteChildren {
   AdminRoute: typeof AdminRoute
   AgendaRoute: typeof AgendaRoute
   AnaliseRoute: typeof AnaliseRoute
+  AuthRoute: typeof AuthRoute
   DescobrirRoute: typeof DescobrirRoute
   EditorRoute: typeof EditorRoute
+  ResetPasswordRoute: typeof ResetPasswordRoute
   ApiPublicSocialVideoRoute: typeof ApiPublicSocialVideoRoute
 }
 
@@ -151,6 +177,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AnaliseRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/auth': {
+      id: '/auth'
+      path: '/auth'
+      fullPath: '/auth'
+      preLoaderRoute: typeof AuthRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/descobrir': {
       id: '/descobrir'
       path: '/descobrir'
@@ -163,6 +196,13 @@ declare module '@tanstack/react-router' {
       path: '/editor'
       fullPath: '/editor'
       preLoaderRoute: typeof EditorRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/reset-password': {
+      id: '/reset-password'
+      path: '/reset-password'
+      fullPath: '/reset-password'
+      preLoaderRoute: typeof ResetPasswordRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/public/social-video': {
@@ -180,8 +220,10 @@ const rootRouteChildren: RootRouteChildren = {
   AdminRoute: AdminRoute,
   AgendaRoute: AgendaRoute,
   AnaliseRoute: AnaliseRoute,
+  AuthRoute: AuthRoute,
   DescobrirRoute: DescobrirRoute,
   EditorRoute: EditorRoute,
+  ResetPasswordRoute: ResetPasswordRoute,
   ApiPublicSocialVideoRoute: ApiPublicSocialVideoRoute,
 }
 export const routeTree = rootRouteImport
