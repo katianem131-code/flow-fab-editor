@@ -14,6 +14,8 @@ export const Route = createFileRoute("/reset-password")({
       { name: "description", content: "Defina uma nova senha para sua conta LabRemix." },
       { property: "og:title", content: "Nova senha — LabRemix" },
       { property: "og:description", content: "Redefina sua senha LabRemix." },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary" },
     ],
   }),
   component: ResetPage,

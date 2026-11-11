@@ -16,6 +16,8 @@ export const Route = createFileRoute("/auth")({
       { name: "description", content: "Acesse sua conta LabRemix ou crie uma nova para salvar seus lotes e agendamentos." },
       { property: "og:title", content: "Entrar — LabRemix" },
       { property: "og:description", content: "Acesse ou crie sua conta LabRemix." },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary" },
     ],
   }),
   component: AuthPage,

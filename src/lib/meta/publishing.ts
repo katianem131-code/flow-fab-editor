@@ -31,9 +31,10 @@ export async function stepDestination(d: Destination, io: PublishingIO, now = Da
       else if (status === "FINISHED" && d.phase !== "unknown") await io.save(d.phase, { phase: "ready", next_attempt_at: later(60) });
       else await io.save(d.phase, { phase: d.phase, error_code: d.phase === "unknown" ? "publication_unconfirmed" : undefined, next_attempt_at: later(backoff(d.attempts)) });
     } else if (d.phase === "ready" && d.container_id) {
+      const container = d.container_id;
       if (!await io.save("ready", { phase: "sending" })) return;
       d = { ...d, phase: "sending" };
-      const id = await io.publish(d.container_id);
+      const id = await io.publish(container);
       if (!id) throw { ambiguous: true };
       await io.save("sending", { phase: "published", media_id: id });
     }
