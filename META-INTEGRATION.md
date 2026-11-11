@@ -34,19 +34,42 @@ All three applied successfully; none pending. Readback confirmed anon/authentica
 - Automatic preview build/typecheck: `build OK`, after fixing the nullable container narrowing error.
 - Browser: Agenda renders with configuration-incomplete message and connection button disabled; unsigned cron returns 401; localhost callback is rejected with 403; zero page runtime errors. No signed-in OAuth or live posting flow was exercised, as prohibited.
 
-## Manual configuration remaining (not performed)
+## Confirmed environment configuration — November 11, 2026
 
-- Verify existing `META_APP_ID` refers to app `2056146455756708`, associated with portfolio `2076601436361179`.
-- Set the real `META_CONFIG_ID` from the Meta dashboard; do not use the app or portfolio ID in its place.
-- Set `META_GRAPH_VERSION` to an officially supported version enabled for the app, and `META_TOKEN_KIND` to `user` or `system_user` to match that exact configuration. Documentation examples currently show v26.0; the app does not silently assume it.
-- Configure only `instagram_basic`, `instagram_content_publish`, `pages_show_list`, `pages_read_engagement` and necessary Page/Instagram assets in that configuration. No ads, messaging, comments or Facebook Page publishing support is claimed.
-- Exact production callback: `https://flow-fab-editor.lovable.app/api/public/meta/callback`. Additional HTTPS origins require explicit comma-separated `META_ALLOWED_ORIGINS` and exact dashboard callbacks. Localhost is not implicitly allowed.
-- Keep the existing Meta secret and cron secret untouched. Ensure existing server storage configuration yields an external HTTPS Supabase Storage origin (`VITE_SUPABASE_URL` if a server-only origin needs remapping).
+The builder confirmed the Meta dashboard configuration **LabRemix Publicação Instagram**, general configuration, compatible with Unified Login, a required Instagram asset and a system-user token (SUAT) without automatic expiration. Actual future token validity still requires inspection; this setting does not prevent revocation.
+
+Only these public configuration values were added to the encrypted project server environment:
+
+| Variable | Public value | Verification |
+| --- | --- | --- |
+| `META_APP_ID` | `2056146455756708` | Previously unavailable in the accessible store and sandbox; added and exact match verified privately. |
+| `META_CONFIG_ID` | `4569614423283784` | Added; exact match verified privately. |
+| `META_TOKEN_KIND` | `system_user` | Added; exact match verified privately. |
+| `META_GRAPH_VERSION` | `v26.0` | Added; exact match verified privately. |
+
+Business portfolio: **2076601436361179** (context only, not an OAuth configuration ID). No portfolio environment variable is required by the existing implementation.
+
+Confirmed saved production callback: **https://flow-fab-editor.lovable.app/api/public/meta/callback**. The existing production-origin restriction already matches it; no origin override was added. Additional HTTPS origins require explicit comma-separated `META_ALLOWED_ORIGINS` and exact dashboard callbacks. Localhost remains disallowed.
+
+Confirmed configuration permissions: `instagram_basic`, `instagram_content_publish`, `pages_read_engagement` and the automatically dependent `pages_show_list`. No scope override, permission request, ads, messages, comments or Facebook Pages publishing was added.
+
+The official Graph v26.0 changelog was fetched directly on November 11, 2026. It lists release July 29, 2026 and availability end **TBD**. The documented changes do not remove the existing Instagram publication/discovery endpoints or `debug_token`; v26.0 is explicitly selected, not silently defaulted. This documentation check does not prove app-specific authorization or live discovery.
+
+**Environment scope:** saves were acknowledged by the project secret store and all four variables were read back successfully in the sandbox used by the local preview server. No committed environment file or frontend values were added. Production runtime application was not verified and no production deployment was performed; do not infer production readiness from sandbox validation.
+
+**Configuration blocker:** `META_APP_SECRET` is not listed in the accessible project secret store and is unavailable to this sandbox. Its existence in another environment cannot be established by these checks. The existing validator therefore remains incomplete here. No Meta app secret was requested, copied, generated, replaced or rotated; `CRON_SECRET` and all unrelated secrets were preserved. Restore availability of the **existing** app secret through the environment owner's secure settings if it is stored elsewhere, without creating a new Meta credential.
+
+## Manual steps remaining (not performed)
+
+- Resolve availability of the existing `META_APP_SECRET` in the intended server environment; full configuration validation is blocked until it is available.
+- Production configuration readback remains unverified because deployment and production changes are outside this task.
+- Ensure existing server storage configuration yields an external HTTPS Supabase Storage origin (`VITE_SUPABASE_URL` if a server-only origin needs remapping).
 - Reselect connected accounts on legacy handle-only schedules. Investigate `unknown` outcomes manually rather than resetting/replaying them. No automatic cron setup was performed.
 - OAuth consent and real per-destination publication/readback remain unverified until separately authorized.
 
 ## Official references consulted
 
+- https://developers.facebook.com/docs/graph-api/changelog/version26.0/ — fetched November 11, 2026; release and availability checked before saving the version.
 - https://developers.facebook.com/documentation/facebook-login/facebook-login-for-business
 - https://developers.facebook.com/documentation/instagram-platform/instagram-api-with-facebook-login/business-login-for-instagram
 - https://developers.facebook.com/documentation/instagram-platform/instagram-api-with-facebook-login/get-started

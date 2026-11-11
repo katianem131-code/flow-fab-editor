@@ -8,3 +8,5 @@
 - [x] Harden Meta business OAuth, atomic state/session binding, and minimal permissions without executing consent.
 - [x] Implement leased, resumable, per-account Instagram publishing with ownership checks and unknown-write reconciliation.
 - [x] Execute offline regression tests and verify preview compilation; document manual configuration without deployment.
+- [x] Configure confirmed Meta public IDs, system-user token kind and supported Graph version in the project server environment without consent or deployment.
+- [ ] Complete configuration-only validation with the existing META_APP_SECRET (not exposed in the accessible project store or sandbox; preserve it without replacement).
