@@ -57,11 +57,12 @@ The official Graph v26.0 changelog was fetched directly on November 11, 2026. It
 
 **Environment scope:** saves were acknowledged by the project secret store and all four variables were read back successfully in the sandbox used by the local preview server. No committed environment file or frontend values were added. Production runtime application was not verified and no production deployment was performed; do not infer production readiness from sandbox validation.
 
-**Configuration blocker:** `META_APP_SECRET` is not listed in the accessible project secret store and is unavailable to this sandbox. Its existence in another environment cannot be established by these checks. The existing validator therefore remains incomplete here. No Meta app secret was requested, copied, generated, replaced or rotated; `CRON_SECRET` and all unrelated secrets were preserved. Restore availability of the **existing** app secret through the environment owner's secure settings if it is stored elsewhere, without creating a new Meta credential.
+**Configuration-only validation:** `META_APP_SECRET` was initially absent from the accessible store and sandbox. The builder then supplied it through the secure form, which was explicitly limited to the **existing** app secret. The form confirmed storage; its value was never available to the agent. The existing validator now returns `configured: true`, and private exact-match checks of all four public settings pass. No provider credential was generated or rotated, and no existing stored secret was overwritten; `CRON_SECRET` and all unrelated secrets were preserved. Provider-side validity was not tested, as OAuth and authenticated Meta calls are outside scope.
+
+**Checks for this environment-only continuation:** 19 offline Meta tests passed (seven configuration rules and twelve existing delivery/transport tests). Automatic local compilation reports `build OK`; hosted preview diagnostics report no compiler errors or failed targets. No manual build/typecheck command was run, as this project delegates those checks to the preview harness. No OAuth, token issuance, external cron, posting, payment change or deployment was performed.
 
 ## Manual steps remaining (not performed)
 
-- Resolve availability of the existing `META_APP_SECRET` in the intended server environment; full configuration validation is blocked until it is available.
 - Production configuration readback remains unverified because deployment and production changes are outside this task.
 - Ensure existing server storage configuration yields an external HTTPS Supabase Storage origin (`VITE_SUPABASE_URL` if a server-only origin needs remapping).
 - Reselect connected accounts on legacy handle-only schedules. Investigate `unknown` outcomes manually rather than resetting/replaying them. No automatic cron setup was performed.
