@@ -14,6 +14,36 @@ export type Database = {
   }
   public: {
     Tables: {
+      batches: {
+        Row: {
+          created_at: string
+          id: string
+          item_count: number
+          name: string
+          target: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          item_count?: number
+          name: string
+          target?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          item_count?: number
+          name?: string
+          target?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           avatar_url: string | null
@@ -37,6 +67,121 @@ export type Database = {
           updated_at?: string
         }
         Relationships: []
+      }
+      scheduled_posts: {
+        Row: {
+          account_username: string | null
+          caption: string | null
+          created_at: string
+          error_message: string | null
+          format: string
+          id: string
+          instagram_media_id: string | null
+          platform: string
+          published_at: string | null
+          scheduled_for: string | null
+          status: string
+          updated_at: string
+          user_id: string
+          video_id: string | null
+        }
+        Insert: {
+          account_username?: string | null
+          caption?: string | null
+          created_at?: string
+          error_message?: string | null
+          format?: string
+          id?: string
+          instagram_media_id?: string | null
+          platform?: string
+          published_at?: string | null
+          scheduled_for?: string | null
+          status?: string
+          updated_at?: string
+          user_id?: string
+          video_id?: string | null
+        }
+        Update: {
+          account_username?: string | null
+          caption?: string | null
+          created_at?: string
+          error_message?: string | null
+          format?: string
+          id?: string
+          instagram_media_id?: string | null
+          platform?: string
+          published_at?: string | null
+          scheduled_for?: string | null
+          status?: string
+          updated_at?: string
+          user_id?: string
+          video_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "scheduled_posts_video_id_fkey"
+            columns: ["video_id"]
+            isOneToOne: false
+            referencedRelation: "videos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      videos: {
+        Row: {
+          batch_id: string | null
+          created_at: string
+          duration: number | null
+          id: string
+          original_name: string | null
+          settings: Json
+          size_bytes: number | null
+          status: string
+          storage_path: string | null
+          thumbnail_path: string | null
+          title: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          batch_id?: string | null
+          created_at?: string
+          duration?: number | null
+          id?: string
+          original_name?: string | null
+          settings?: Json
+          size_bytes?: number | null
+          status?: string
+          storage_path?: string | null
+          thumbnail_path?: string | null
+          title?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Update: {
+          batch_id?: string | null
+          created_at?: string
+          duration?: number | null
+          id?: string
+          original_name?: string | null
+          settings?: Json
+          size_bytes?: number | null
+          status?: string
+          storage_path?: string | null
+          thumbnail_path?: string | null
+          title?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "videos_batch_id_fkey"
+            columns: ["batch_id"]
+            isOneToOne: false
+            referencedRelation: "batches"
+            referencedColumns: ["id"]
+          },
+        ]
       }
     }
     Views: {
