@@ -47,6 +47,122 @@ export type Database = {
         }
         Relationships: []
       }
+      credit_transactions: {
+        Row: {
+          amount: number
+          created_at: string
+          description: string | null
+          external_id: string | null
+          id: string
+          kind: string
+          user_id: string
+        }
+        Insert: {
+          amount: number
+          created_at?: string
+          description?: string | null
+          external_id?: string | null
+          id?: string
+          kind: string
+          user_id: string
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          description?: string | null
+          external_id?: string | null
+          id?: string
+          kind?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      instagram_accounts: {
+        Row: {
+          created_at: string
+          id: string
+          ig_user_id: string
+          page_id: string | null
+          page_name: string | null
+          profile_picture_url: string | null
+          token_expires_at: string | null
+          updated_at: string
+          user_id: string
+          username: string | null
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          ig_user_id: string
+          page_id?: string | null
+          page_name?: string | null
+          profile_picture_url?: string | null
+          token_expires_at?: string | null
+          updated_at?: string
+          user_id: string
+          username?: string | null
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          ig_user_id?: string
+          page_id?: string | null
+          page_name?: string | null
+          profile_picture_url?: string | null
+          token_expires_at?: string | null
+          updated_at?: string
+          user_id?: string
+          username?: string | null
+        }
+        Relationships: []
+      }
+      instagram_tokens: {
+        Row: {
+          access_token: string
+          account_id: string
+          updated_at: string
+        }
+        Insert: {
+          access_token: string
+          account_id: string
+          updated_at?: string
+        }
+        Update: {
+          access_token?: string
+          account_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "instagram_tokens_account_id_fkey"
+            columns: ["account_id"]
+            isOneToOne: true
+            referencedRelation: "instagram_accounts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      meta_oauth_states: {
+        Row: {
+          created_at: string
+          id: string
+          return_to: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          return_to?: string | null
+          user_id?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          return_to?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           avatar_url: string | null
@@ -76,10 +192,12 @@ export type Database = {
           account_username: string | null
           caption: string | null
           created_at: string
+          creation_id: string | null
           details: Json
           error_message: string | null
           format: string
           id: string
+          instagram_account_id: string | null
           instagram_media_id: string | null
           platform: string
           published_at: string | null
@@ -93,10 +211,12 @@ export type Database = {
           account_username?: string | null
           caption?: string | null
           created_at?: string
+          creation_id?: string | null
           details?: Json
           error_message?: string | null
           format?: string
           id?: string
+          instagram_account_id?: string | null
           instagram_media_id?: string | null
           platform?: string
           published_at?: string | null
@@ -110,10 +230,12 @@ export type Database = {
           account_username?: string | null
           caption?: string | null
           created_at?: string
+          creation_id?: string | null
           details?: Json
           error_message?: string | null
           format?: string
           id?: string
+          instagram_account_id?: string | null
           instagram_media_id?: string | null
           platform?: string
           published_at?: string | null
@@ -125,6 +247,13 @@ export type Database = {
         }
         Relationships: [
           {
+            foreignKeyName: "scheduled_posts_instagram_account_id_fkey"
+            columns: ["instagram_account_id"]
+            isOneToOne: false
+            referencedRelation: "instagram_accounts"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "scheduled_posts_video_id_fkey"
             columns: ["video_id"]
             isOneToOne: false
@@ -132,6 +261,39 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      user_billing: {
+        Row: {
+          created_at: string
+          credits_balance: number
+          customer_email: string | null
+          plan_name: string | null
+          plan_renews_at: string | null
+          plan_status: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          credits_balance?: number
+          customer_email?: string | null
+          plan_name?: string | null
+          plan_renews_at?: string | null
+          plan_status?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          credits_balance?: number
+          customer_email?: string | null
+          plan_name?: string | null
+          plan_renews_at?: string | null
+          plan_status?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
       }
       videos: {
         Row: {
@@ -194,7 +356,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      consume_credits: {
+        Args: { _amount: number; _description: string }
+        Returns: number
+      }
     }
     Enums: {
       [_ in never]: never
