@@ -116,20 +116,95 @@ export type Database = {
         }
         Relationships: []
       }
+      instagram_post_destinations: {
+        Row: {
+          account_id: string
+          attempts: number
+          container_id: string | null
+          created_at: string
+          error_code: string | null
+          id: string
+          media_id: string | null
+          next_attempt_at: string
+          operation_started_at: string | null
+          phase: string
+          post_id: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          account_id: string
+          attempts?: number
+          container_id?: string | null
+          created_at?: string
+          error_code?: string | null
+          id?: string
+          media_id?: string | null
+          next_attempt_at?: string
+          operation_started_at?: string | null
+          phase?: string
+          post_id: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          account_id?: string
+          attempts?: number
+          container_id?: string | null
+          created_at?: string
+          error_code?: string | null
+          id?: string
+          media_id?: string | null
+          next_attempt_at?: string
+          operation_started_at?: string | null
+          phase?: string
+          post_id?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "instagram_post_destinations_account_id_fkey"
+            columns: ["account_id"]
+            isOneToOne: false
+            referencedRelation: "instagram_accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "instagram_post_destinations_post_id_fkey"
+            columns: ["post_id"]
+            isOneToOne: false
+            referencedRelation: "scheduled_posts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       instagram_tokens: {
         Row: {
           access_token: string
           account_id: string
+          data_access_expires_at: string | null
+          expires_at: string | null
+          revoked_at: string | null
+          token_kind: string
           updated_at: string
         }
         Insert: {
           access_token: string
           account_id: string
+          data_access_expires_at?: string | null
+          expires_at?: string | null
+          revoked_at?: string | null
+          token_kind?: string
           updated_at?: string
         }
         Update: {
           access_token?: string
           account_id?: string
+          data_access_expires_at?: string | null
+          expires_at?: string | null
+          revoked_at?: string | null
+          token_kind?: string
           updated_at?: string
         }
         Relationships: [
@@ -144,21 +219,33 @@ export type Database = {
       }
       meta_oauth_states: {
         Row: {
+          binding_hash: string | null
           created_at: string
+          expires_at: string
           id: string
+          redirect_uri: string | null
           return_to: string | null
+          session_id: string | null
           user_id: string
         }
         Insert: {
+          binding_hash?: string | null
           created_at?: string
+          expires_at?: string
           id?: string
+          redirect_uri?: string | null
           return_to?: string | null
+          session_id?: string | null
           user_id?: string
         }
         Update: {
+          binding_hash?: string | null
           created_at?: string
+          expires_at?: string
           id?: string
+          redirect_uri?: string | null
           return_to?: string | null
+          session_id?: string | null
           user_id?: string
         }
         Relationships: []
@@ -199,6 +286,8 @@ export type Database = {
           id: string
           instagram_account_id: string | null
           instagram_media_id: string | null
+          lease_owner: string | null
+          lease_until: string | null
           platform: string
           published_at: string | null
           scheduled_for: string | null
@@ -218,6 +307,8 @@ export type Database = {
           id?: string
           instagram_account_id?: string | null
           instagram_media_id?: string | null
+          lease_owner?: string | null
+          lease_until?: string | null
           platform?: string
           published_at?: string | null
           scheduled_for?: string | null
@@ -237,6 +328,8 @@ export type Database = {
           id?: string
           instagram_account_id?: string | null
           instagram_media_id?: string | null
+          lease_owner?: string | null
+          lease_until?: string | null
           platform?: string
           published_at?: string | null
           scheduled_for?: string | null
@@ -356,9 +449,72 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      advance_instagram_destination: {
+        Args: {
+          _destination: string
+          _expected: string
+          _patch: Json
+          _post: string
+          _worker: string
+        }
+        Returns: boolean
+      }
+      claim_instagram_post: {
+        Args: { _worker: string }
+        Returns: {
+          account_username: string | null
+          caption: string | null
+          created_at: string
+          creation_id: string | null
+          details: Json
+          error_message: string | null
+          format: string
+          id: string
+          instagram_account_id: string | null
+          instagram_media_id: string | null
+          lease_owner: string | null
+          lease_until: string | null
+          platform: string
+          published_at: string | null
+          scheduled_for: string | null
+          status: string
+          updated_at: string
+          user_id: string
+          video_id: string | null
+        }[]
+        SetofOptions: {
+          from: "*"
+          to: "scheduled_posts"
+          isOneToOne: false
+          isSetofReturn: true
+        }
+      }
       consume_credits: {
         Args: { _amount: number; _description: string }
         Returns: number
+      }
+      consume_meta_state: {
+        Args: { _binding: string; _id: string; _redirect: string }
+        Returns: {
+          binding_hash: string | null
+          created_at: string
+          expires_at: string
+          id: string
+          redirect_uri: string | null
+          return_to: string | null
+          session_id: string | null
+          user_id: string
+        }[]
+        SetofOptions: {
+          from: "*"
+          to: "meta_oauth_states"
+          isOneToOne: false
+          isSetofReturn: true
+        }
+      }
+      release_instagram_post: {
+        Args: { _post: string; _worker: string }
+        Returns: boolean
       }
     }
     Enums: {
