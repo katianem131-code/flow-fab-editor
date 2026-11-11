@@ -10,6 +10,7 @@ export interface ScheduledPost {
   headline: string;
   caption: string;
   accounts: string[];
+  accountIds?: string[];
   format: PostFormat;
   publishAt: string; // ISO
   coverSecond: number;

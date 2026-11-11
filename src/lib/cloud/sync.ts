@@ -148,7 +148,7 @@ export async function cloudUpsertPost(p: ScheduledPost) {
     caption: p.caption,
     status: toDbStatus(p.status),
     created_at: p.createdAt,
-    details: { videoName: p.videoName, headline: p.headline, accounts: p.accounts, coverSecond: p.coverSecond, videoPath: p.videoPath },
+    details: { videoName: p.videoName, headline: p.headline, accounts: p.accounts, accountIds: p.accountIds ?? [], coverSecond: p.coverSecond, videoPath: p.videoPath },
   });
   warn("save post", error);
 }
@@ -171,6 +171,7 @@ export async function cloudFetchPosts(): Promise<ScheduledPost[] | null> {
       headline: String(d.headline ?? ""),
       caption: r.caption ?? "",
       accounts: Array.isArray(d.accounts) ? (d.accounts as string[]) : [],
+      accountIds: Array.isArray(d.accountIds) ? (d.accountIds as string[]) : [],
       format: (r.format as ScheduledPost["format"]) ?? "reels",
       publishAt: r.scheduled_for ?? r.created_at,
       coverSecond: Number(d.coverSecond ?? 1),

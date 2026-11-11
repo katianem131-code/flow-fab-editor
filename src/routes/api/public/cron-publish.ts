@@ -1,62 +1,90 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { GRAPH } from "@/lib/meta/meta.functions";
+import { z } from "zod";
+import { readConfig } from "@/lib/meta/config";
+import { ownsPath, stepDestination, backoff, type Destination, type Patch, type Phase } from "@/lib/meta/publishing";
 
-const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
-
-async function publishOne(token: string, igId: string, videoUrl: string, caption: string, format: string) {
-  const params = new URLSearchParams({ video_url: videoUrl, caption, access_token: token, media_type: format === "stories" ? "STORIES" : "REELS" });
-  if (format === "feed") params.set("share_to_feed", "true");
-  const c = await (await fetch(`${GRAPH}/${igId}/media`, { method: "POST", body: params })).json();
-  if (!c.id) throw new Error(c.error?.message ?? "Falha ao criar mídia");
-  for (let i = 0; i < 20; i++) {
-    await sleep(3000);
-    const s = await (await fetch(`${GRAPH}/${c.id}?fields=status_code&access_token=${token}`)).json();
-    if (s.status_code === "FINISHED") break;
-    if (s.status_code === "ERROR") throw new Error("A Meta não conseguiu processar o vídeo");
-    if (i === 19) throw new Error("Tempo esgotado no processamento da Meta");
-  }
-  const p = await (await fetch(`${GRAPH}/${igId}/media_publish`, { method: "POST", body: new URLSearchParams({ creation_id: c.id, access_token: token }) })).json();
-  if (!p.id) throw new Error(p.error?.message ?? "Falha ao publicar");
-  return p.id as string;
-}
-
-export const Route = createFileRoute("/api/public/cron-publish")({
-  server: {
-    handlers: {
-      POST: async ({ request }) => {
-        const secret = process.env["CRON_SECRET"];
-        if (!secret || request.headers.get("authorization") !== `Bearer ${secret}`) return new Response("unauthorized", { status: 401 });
-        const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-        const { data: due } = await supabaseAdmin.from("scheduled_posts").select("*")
-          .in("status", ["scheduled", "publishing"]).lte("scheduled_for", new Date().toISOString()).limit(3);
-        const results: { id: string; ok: boolean; error?: string }[] = [];
-        for (const post of due ?? []) {
-          await supabaseAdmin.from("scheduled_posts").update({ status: "publishing" }).eq("id", post.id);
-          try {
-            const det = (post.details ?? {}) as { videoPath?: string; accounts?: string[] };
-            if (!det.videoPath) throw new Error("O vídeo deste post não foi enviado para a nuvem");
-            const { data: signed } = await supabaseAdmin.storage.from("videos").createSignedUrl(det.videoPath, 3600);
-            if (!signed?.signedUrl) throw new Error("Não foi possível gerar o link do vídeo");
-            const names = (det.accounts ?? []).map((a) => a.replace(/^@/, "").toLowerCase());
-            const { data: accs } = await supabaseAdmin.from("instagram_accounts").select("id, ig_user_id, username").eq("user_id", post.user_id);
-            const targets = (accs ?? []).filter((a) => names.includes((a.username ?? "").toLowerCase()));
-            if (!targets.length) throw new Error("Nenhuma das contas escolhidas está conectada ao Instagram");
-            let lastId = "";
-            for (const t of targets) {
-              const { data: tok } = await supabaseAdmin.from("instagram_tokens").select("access_token").eq("account_id", t.id).single();
-              if (!tok) throw new Error(`Reconecte a conta @${t.username}`);
-              lastId = await publishOne(tok.access_token, t.ig_user_id, signed.signedUrl, post.caption ?? "", post.format);
-            }
-            await supabaseAdmin.from("scheduled_posts").update({ status: "published", instagram_media_id: lastId, published_at: new Date().toISOString(), error_message: null }).eq("id", post.id);
-            results.push({ id: post.id, ok: true });
-          } catch (e) {
-            const msg = e instanceof Error ? e.message : "erro";
-            await supabaseAdmin.from("scheduled_posts").update({ status: "failed", error_message: msg }).eq("id", post.id);
-            results.push({ id: post.id, ok: false, error: msg });
+export const Route = createFileRoute("/api/public/cron-publish")({ server: { handlers: {
+  POST: async ({ request }) => {
+    const secret = process.env.CRON_SECRET;
+    if (!secret || request.headers.get("authorization") !== `Bearer ${secret}`) return new Response("Unauthorized", { status: 401 });
+    const cfg = readConfig(process.env);
+    if (!cfg) return Response.json({ error: "meta_configuration_incomplete" }, { status: 503 });
+    const { supabaseAdmin: db } = await import("@/integrations/supabase/client.server");
+    const { graphRequest, inspectToken, GraphError } = await import("@/lib/meta/graph.server");
+    const worker = crypto.randomUUID();
+    const { data: posts, error: claimError } = await db.rpc("claim_instagram_post", { _worker: worker });
+    if (claimError) return Response.json({ error: "claim_failed" }, { status: 503 });
+    const post = posts?.[0];
+    if (!post) return Response.json({ processed: 0 });
+    try {
+      const { data: destinations, error } = await db.from("instagram_post_destinations").select("*")
+        .eq("post_id", post.id).eq("user_id", post.user_id).not("phase", "in", '("published","failed")')
+        .lte("next_attempt_at", new Date().toISOString()).order("next_attempt_at").limit(1);
+      if (error) throw new Error("destinations_read");
+      const row = destinations?.[0];
+      if (row) {
+        const d = row as Destination;
+        const save = async (expected: Phase, patch: Patch) => {
+          const { data: ok, error: e } = await db.rpc("advance_instagram_destination", { _post: post.id, _worker: worker,
+            _destination: d.id, _expected: expected, _patch: { ...patch } });
+          if (e) throw new Error("delivery_storage");
+          return ok;
+        };
+        try {
+          const { data: account, error: ae } = await db.from("instagram_accounts").select("id,ig_user_id,user_id")
+            .eq("id", d.account_id).eq("user_id", post.user_id).single();
+          if (ae || !account || d.user_id !== post.user_id) throw new GraphError("account_owner", false, false);
+          const { data: token, error: te } = await db.from("instagram_tokens").select("*").eq("account_id", account.id).single();
+          if (te || !token || token.revoked_at || [token.expires_at, token.data_access_expires_at].some((v) => v && Date.parse(v) <= Date.now()))
+            throw new GraphError("reconnect", false, false);
+          const base = `https://graph.facebook.com/${cfg.version}`;
+          try { await inspectToken(base, token.access_token, cfg.appId, cfg.appSecret); }
+          catch (e) {
+            if (e instanceof GraphError && e.code === "reconnect") await db.from("instagram_tokens").update({ revoked_at: new Date().toISOString() }).eq("account_id", account.id);
+            throw e;
           }
+          const parsed = z.object({ videoPath: z.string().max(1024), coverSecond: z.number().min(0).max(180).optional() }).safeParse(post.details);
+          await stepDestination(d, { save,
+            create: async () => {
+              if (!parsed.success || !ownsPath(post.user_id, parsed.data.videoPath)) throw new GraphError("media_owner", false, false);
+              if (post.video_id) {
+                const { data: media } = await db.from("videos").select("id").eq("id", post.video_id).eq("user_id", post.user_id).single();
+                if (!media) throw new GraphError("media_owner", false, false);
+              }
+              const { data: bucket, error: be } = await db.storage.getBucket("videos");
+              if (be || !bucket || bucket.public) throw new GraphError("private_storage_required", false, false);
+              const { data: signed, error: se } = await db.storage.from("videos").createSignedUrl(parsed.data.videoPath, 86400);
+              if (se || !signed) throw new GraphError("video_unavailable", false, false);
+              // Browser/Meta must receive a reachable external Storage URL, never the sandbox server origin.
+              const publicStorage = process.env.VITE_SUPABASE_URL;
+              const signedUrl = new URL(signed.signedUrl);
+              if (publicStorage) signedUrl.host = new URL(publicStorage).host;
+              if (signedUrl.protocol !== "https:") throw new GraphError("storage_url_configuration", false, false);
+              const result = await graphRequest(base, `${account.ig_user_id}/media`, token.access_token, {
+                video_url: signedUrl.toString(), media_type: post.format === "stories" ? "STORIES" : "REELS",
+                ...(post.format !== "stories" ? { caption: post.caption ?? "", share_to_feed: String(post.format === "feed"),
+                  thumb_offset: String((parsed.data.coverSecond ?? 1) * 1000) } : {}),
+              }, true);
+              return typeof result.id === "string" ? result.id : "";
+            },
+            status: async (container) => {
+              const result = await graphRequest(base, container, token.access_token, { fields: "status_code" });
+              return z.string().parse(result.status_code);
+            },
+            publish: async (container) => {
+              const result = await graphRequest(base, `${account.ig_user_id}/media_publish`, token.access_token, { creation_id: container }, true);
+              return typeof result.id === "string" ? result.id : "";
+            },
+          });
+        } catch (e) {
+          const g = e instanceof GraphError ? e : new GraphError("preflight_failed", true, false);
+          await save(d.phase, { phase: g.recoverable && d.attempts < 8 ? d.phase : "failed", error_code: g.code,
+            next_attempt_at: new Date(Date.now() + backoff(d.attempts, g.retryAfter) * 1000).toISOString() });
         }
-        return Response.json({ processed: results.length, results });
-      },
-    },
+      }
+      const { error: releaseError } = await db.rpc("release_instagram_post", { _post: post.id, _worker: worker });
+      if (releaseError) throw new Error("release_failed");
+      return Response.json({ processed: row ? 1 : 0 }); // No tokens, signed URLs or user data in cron responses.
+    } catch { return Response.json({ error: "delivery_persistence_failed" }, { status: 503 }); }
   },
-});
+} } });

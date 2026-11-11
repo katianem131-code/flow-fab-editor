@@ -200,7 +200,7 @@ function AgendaPage() {
           )}
         </section>
         <p className="text-center text-[11px] text-muted-foreground">
-          Posts agendados com uma conta conectada são publicados automaticamente no horário escolhido.
+          Publicação no Instagram depende da conexão válida e da configuração do agendador.
         </p>
       </main>
     </div>

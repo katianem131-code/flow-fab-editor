@@ -39,30 +39,34 @@ export function ScheduleForm({
   const [caption, setCaption] = useState("");
   const [cover, setCover] = useState(1);
   const [busy, setBusy] = useState(false);
-  const [igAccounts, setIgAccounts] = useState<string[]>([]);
+  const [igAccounts, setIgAccounts] = useState<{id: string; username: string | null}[]>([]);
   useEffect(() => {
-    supabase.from("instagram_accounts").select("username").then(({ data }) =>
-      setIgAccounts((data ?? []).map((a) => `@${a.username}`).filter(Boolean)),
+    supabase.from("instagram_accounts").select("id,username").then(({ data }) =>
+      setIgAccounts(data ?? []),
     );
   }, []);
-  const allAccounts = [...new Set([...igAccounts, ...accounts])];
+  const allAccounts = [...new Set([...igAccounts.map((a) => `@${a.username}`), ...accounts])];
 
   const toggle = (a: string) =>
     setSelected((s) => (s.includes(a) ? s.filter((x) => x !== a) : [...s, a]));
 
   const submit = async (now: boolean) => {
     if (selected.length === 0) return toast.error("Escolha ao menos uma conta.");
+    const targets = igAccounts.filter((a) => selected.includes(`@${a.username}`));
+    if (targets.length !== selected.length) return toast.error("Conecte todas as contas escolhidas ao Instagram primeiro.");
     const publishAt = now ? new Date() : new Date(`${date}T${time}`);
     if (!now && publishAt < new Date()) return toast.error("Escolha um horário futuro.");
     setBusy(true);
     const videoPath = previewUrl ? await cloudUploadPostVideo(previewUrl, videoName) : null;
     setBusy(false);
+    if (!videoPath) return toast.error("Entre na sua conta e aguarde o envio do vídeo para agendar.");
     addPost({
       videoPath: videoPath ?? undefined,
       videoName,
       headline,
       caption,
       accounts: selected,
+      accountIds: targets.map((a) => a.id),
       format,
       publishAt: publishAt.toISOString(),
       coverSecond: cover,
