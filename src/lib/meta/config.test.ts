@@ -1,5 +1,5 @@
 import { expect, it } from "vitest";
-import { CALLBACK_PATH, PRODUCTION_ORIGIN, PUBLICATION_PERMISSIONS, readConfig } from "./config";
+import { allowedOrigin, CALLBACK_PATH, PRODUCTION_ORIGIN, PUBLICATION_PERMISSIONS, readConfig } from "./config";
 
 // Public dashboard configuration only. This fixture is not a provider credential.
 const environment = {
@@ -32,4 +32,30 @@ it("keeps only the four confirmed publication permissions", () => {
   expect(PUBLICATION_PERMISSIONS).toEqual([
     "instagram_basic", "instagram_content_publish", "pages_show_list", "pages_read_engagement",
   ]);
+});
+
+const approvedOrigins = "https://flow-fab-editor.lovable.app,https://55a1bc31-911b-44fc-80b5-6685f61b9567.lovableproject.com";
+it("accepts the exact approved live-preview origin", () => {
+  expect(allowedOrigin("https://55a1bc31-911b-44fc-80b5-6685f61b9567.lovableproject.com", approvedOrigins)).toBe(true);
+});
+it("preserves the approved production origin with additional origins", () => {
+  expect(allowedOrigin("https://flow-fab-editor.lovable.app", approvedOrigins)).toBe(true);
+});
+it("rejects unrelated origins", () => {
+  expect(allowedOrigin("https://unapproved.example.com", approvedOrigins)).toBe(false);
+});
+it("rejects localhost", () => {
+  expect(allowedOrigin("http://localhost:8080", approvedOrigins)).toBe(false);
+  expect(allowedOrigin("https://localhost", approvedOrigins)).toBe(false);
+});
+it("does not approve the excluded static-preview origin", () => {
+  expect(allowedOrigin("https://preview--flow-fab-editor.lovable.app", approvedOrigins)).toBe(false);
+});
+it("rejects lookalike subdomains and insecure variants of the live preview", () => {
+  expect(allowedOrigin("https://55a1bc31-911b-44fc-80b5-6685f61b9567.lovableproject.com.unapproved.example", approvedOrigins)).toBe(false);
+  expect(allowedOrigin("http://55a1bc31-911b-44fc-80b5-6685f61b9567.lovableproject.com", approvedOrigins)).toBe(false);
+});
+it("uses the exact live-preview test callback specified by the builder", () => {
+  expect("https://55a1bc31-911b-44fc-80b5-6685f61b9567.lovableproject.com" + CALLBACK_PATH)
+    .toBe("https://55a1bc31-911b-44fc-80b5-6685f61b9567.lovableproject.com/api/public/meta/callback");
 });

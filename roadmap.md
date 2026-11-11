@@ -10,3 +10,4 @@
 - [x] Execute offline regression tests and verify preview compilation; document manual configuration without deployment.
 - [x] Configure confirmed Meta public IDs, system-user token kind and supported Graph version in the project server environment without consent or deployment.
 - [x] Complete configuration-only validation after secure entry of the existing META_APP_SECRET, without exposing or rotating credentials.
+- [x] Permit only the approved live-preview origin alongside production, validate exact allowlist without OAuth, and document the test callback without deployment.

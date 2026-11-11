@@ -49,7 +49,7 @@ Only these public configuration values were added to the encrypted project serve
 
 Business portfolio: **2076601436361179** (context only, not an OAuth configuration ID). No portfolio environment variable is required by the existing implementation.
 
-Confirmed saved production callback: **https://flow-fab-editor.lovable.app/api/public/meta/callback**. The existing production-origin restriction already matches it; no origin override was added. Additional HTTPS origins require explicit comma-separated `META_ALLOWED_ORIGINS` and exact dashboard callbacks. Localhost remains disallowed.
+Confirmed saved production callback: **https://flow-fab-editor.lovable.app/api/public/meta/callback**. The existing production-origin restriction already matches it. Additional HTTPS origins require explicit comma-separated `META_ALLOWED_ORIGINS` and exact dashboard callbacks. Localhost remains disallowed.
 
 Confirmed configuration permissions: `instagram_basic`, `instagram_content_publish`, `pages_read_engagement` and the automatically dependent `pages_show_list`. No scope override, permission request, ads, messages, comments or Facebook Pages publishing was added.
 
@@ -60,6 +60,19 @@ The official Graph v26.0 changelog was fetched directly on November 11, 2026. It
 **Configuration-only validation:** `META_APP_SECRET` was initially absent from the accessible store and sandbox. The builder then supplied it through the secure form, which was explicitly limited to the **existing** app secret. The form confirmed storage; its value was never available to the agent. The existing validator now returns `configured: true`, and private exact-match checks of all four public settings pass. No provider credential was generated or rotated, and no existing stored secret was overwritten; `CRON_SECRET` and all unrelated secrets were preserved. Provider-side validity was not tested, as OAuth and authenticated Meta calls are outside scope.
 
 **Checks for this environment-only continuation:** 19 offline Meta tests passed (seven configuration rules and twelve existing delivery/transport tests). Automatic local compilation reports `build OK`; hosted preview diagnostics report no compiler errors or failed targets. No manual build/typecheck command was run, as this project delegates those checks to the preview harness. No OAuth, token issuance, external cron, posting, payment change or deployment was performed.
+
+## Live-preview origin preparation — November 11, 2026
+
+Only `META_ALLOWED_ORIGINS` was added to the project server environment, with these exact public origins:
+
+- `https://flow-fab-editor.lovable.app`
+- `https://55a1bc31-911b-44fc-80b5-6685f61b9567.lovableproject.com`
+
+The variable was absent from both the accessible project store and sandbox before this addition; there were no additional stored origins to overwrite. `allowedOrigin` adds configured origins to the production default rather than replacing it; production is also explicitly included in the new value. No wildcard, localhost or `https://preview--flow-fab-editor.lovable.app` was added. All other environment parameters and credentials remain unchanged.
+
+Exact test callback the builder is registering in Meta: **https://55a1bc31-911b-44fc-80b5-6685f61b9567.lovableproject.com/api/public/meta/callback**. Its dashboard registration is builder-reported/in progress, not independently verified. The production callback remains unchanged. The existing flow derives its callback from the exact initiating origin; no connection was initiated to validate this.
+
+Environment scope: the project server store acknowledged the addition; sandbox readback and validation confirm the new allowlist and complete Meta configuration. No production deployment was performed. Hosted external runtime propagation is not established by sandbox readback and remains unverified. Runtime implementation was not changed; focused regression tests cover exact approved origins and rejection of unrelated, localhost, excluded static-preview and lookalike origins. OAuth, account connection, token generation and real posting remain untested and were not executed. No external cron or payment change was made; Facebook Pages publishing remains unsupported.
 
 ## Manual steps remaining (not performed)
 
