@@ -1,5 +1,7 @@
 // Local registry of import batches ("lotes"). Only metadata is stored; the
 // media files themselves live in memory for the current session.
+import { cloudSaveBatch, cloudRenameBatch, cloudRemoveBatch, cloudFetchBatches } from "@/lib/cloud/sync";
+
 export type BatchDestination = "editor" | "ai";
 
 export interface BatchRecord {
@@ -43,7 +45,25 @@ export function saveBatch(rec: BatchRecord) {
   } catch {
     /* ignore */
   }
+  void cloudSaveBatch(rec);
   return list;
+}
+
+/** Junta os lotes salvos na nuvem (usuário logado) com o histórico local. */
+export async function syncBatchesFromCloud(): Promise<BatchRecord[] | null> {
+  const remote = await cloudFetchBatches();
+  if (!remote) return null;
+  const local = loadBatches();
+  const ids = new Set(remote.map((b) => b.id));
+  const merged = [...remote, ...local.filter((b) => !ids.has(b.id))]
+    .sort((a, b) => b.createdAt.localeCompare(a.createdAt))
+    .slice(0, 50);
+  try {
+    window.localStorage.setItem(KEY, JSON.stringify(merged));
+  } catch {
+    /* ignore */
+  }
+  return merged;
 }
 
 export function updateBatchName(id: string, newName: string) {
@@ -54,11 +74,13 @@ export function updateBatchName(id: string, newName: string) {
   } catch {
     /* ignore */
   }
+  void cloudRenameBatch(id, trimmed);
   return list;
 }
 
 export function removeBatch(id: string) {
   const list = loadBatches().filter((b) => b.id !== id);
   window.localStorage.setItem(KEY, JSON.stringify(list));
+  void cloudRemoveBatch(id);
   return list;
 }

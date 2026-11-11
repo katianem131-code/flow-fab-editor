@@ -1,3 +1,4 @@
+import { cloudUploadBatchFiles, cloudLoadBatchFiles } from "@/lib/cloud/sync";
 // Persistência local de mídias de lotes (arquivos File/Blob) usando IndexedDB
 // Permite que ao clicar em um projeto/lote recente, os vídeos sejam restaurados mesmo após recarregar a página.
 
@@ -35,6 +36,7 @@ function openDB(): Promise<IDBDatabase> {
 /** Salva todos os arquivos de um lote no IndexedDB */
 export async function saveBatchFiles(batchId: string, files: File[]): Promise<void> {
   if (!files || files.length === 0) return;
+  void cloudUploadBatchFiles(batchId, files);
   try {
     const db = await openDB();
     const tx = db.transaction(STORE_NAME, "readwrite");
@@ -65,6 +67,12 @@ export async function saveBatchFiles(batchId: string, files: File[]): Promise<vo
 
 /** Carrega os arquivos reais de um lote armazenados no IndexedDB */
 export async function loadBatchFiles(batchId: string): Promise<File[]> {
+  const local = await loadLocalBatchFiles(batchId);
+  if (local.length > 0) return local;
+  return cloudLoadBatchFiles(batchId).catch(() => []);
+}
+
+async function loadLocalBatchFiles(batchId: string): Promise<File[]> {
   try {
     const db = await openDB();
     const tx = db.transaction(STORE_NAME, "readonly");

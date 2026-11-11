@@ -1,4 +1,5 @@
 import { create } from "zustand";
+import { cloudUpsertPost, cloudDeletePost, cloudFetchPosts } from "@/lib/cloud/sync";
 
 export type PostStatus = "scheduled" | "publishing" | "published" | "error";
 export type PostFormat = "reels" | "feed" | "stories";
@@ -59,19 +60,33 @@ function persist(s: Pick<ScheduleState, "posts" | "accounts">) {
 export const useSchedule = create<ScheduleState>((set, get) => ({
   posts: [],
   accounts: [],
-  hydrate: () => set({ posts: read(KEY, []), accounts: read(ACC_KEY, []) }),
+  hydrate: () => {
+    set({ posts: read(KEY, []), accounts: read(ACC_KEY, []) });
+    void cloudFetchPosts().then((remote) => {
+      if (!remote) return;
+      const ids = new Set(remote.map((p) => p.id));
+      const posts = [...remote, ...get().posts.filter((p) => !ids.has(p.id))];
+      const accounts = Array.from(new Set([...get().accounts, ...remote.flatMap((p) => p.accounts)]));
+      set({ posts, accounts });
+      persist(get());
+    });
+  },
   addPost: (p) => {
     const post = { ...p, id: crypto.randomUUID(), createdAt: new Date().toISOString() };
     set({ posts: [...get().posts, post] });
     persist(get());
+    void cloudUpsertPost(post);
   },
   updatePost: (id, patch) => {
     set({ posts: get().posts.map((p) => (p.id === id ? { ...p, ...patch } : p)) });
     persist(get());
+    const updated = get().posts.find((p) => p.id === id);
+    if (updated) void cloudUpsertPost(updated);
   },
   removePost: (id) => {
     set({ posts: get().posts.filter((p) => p.id !== id) });
     persist(get());
+    void cloudDeletePost(id);
   },
   addAccount: (handle) => {
     const h = handle.trim().replace(/^@?/, "@");

@@ -17,6 +17,7 @@ export type Database = {
       batches: {
         Row: {
           created_at: string
+          details: Json
           id: string
           item_count: number
           name: string
@@ -26,6 +27,7 @@ export type Database = {
         }
         Insert: {
           created_at?: string
+          details?: Json
           id?: string
           item_count?: number
           name: string
@@ -35,6 +37,7 @@ export type Database = {
         }
         Update: {
           created_at?: string
+          details?: Json
           id?: string
           item_count?: number
           name?: string
@@ -73,6 +76,7 @@ export type Database = {
           account_username: string | null
           caption: string | null
           created_at: string
+          details: Json
           error_message: string | null
           format: string
           id: string
@@ -89,6 +93,7 @@ export type Database = {
           account_username?: string | null
           caption?: string | null
           created_at?: string
+          details?: Json
           error_message?: string | null
           format?: string
           id?: string
@@ -105,6 +110,7 @@ export type Database = {
           account_username?: string | null
           caption?: string | null
           created_at?: string
+          details?: Json
           error_message?: string | null
           format?: string
           id?: string

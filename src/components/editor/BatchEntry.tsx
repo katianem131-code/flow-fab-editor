@@ -32,6 +32,7 @@ import {
   buildBatchLabel,
   loadBatches,
   removeBatch,
+  syncBatchesFromCloud,
   saveBatch,
   updateBatchName,
   type BatchDestination,
@@ -85,6 +86,9 @@ export function BatchEntry() {
   useEffect(() => {
     setHistory(loadBatches());
     setNow(new Date());
+    void syncBatchesFromCloud().then((list) => {
+      if (list) setHistory(list);
+    });
   }, []);
 
   // Garante que novos arquivos adicionados comecem marcados por padrão
