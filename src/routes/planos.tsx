@@ -46,7 +46,7 @@ function PlanosPage() {
         ) : (
           <p className="rounded-lg border border-primary/40 p-3 text-sm"><Link to="/auth" className="font-semibold text-primary">Entre na sua conta</Link> para ver seu saldo antes de comprar.</p>
         )}
-        <div className="grid gap-4 md:grid-cols-2">
+        <div className="grid gap-4 md:grid-cols-3">
           {PLANS.map((p) => (
             <div key={p.id} className="flex flex-col rounded-xl border border-border bg-surface p-5">
               <h2 className="text-lg font-bold">{p.name}</h2>

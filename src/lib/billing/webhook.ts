@@ -6,13 +6,13 @@ export interface ParsedPayment { email: string | null; event: PaymentEvent; prod
 const norm = (s: string) => s.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
 type Any = Record<string, any>;
 
-/** Lê payloads de Kiwify, Hotmart, Eduzz e formato genérico. */
+/** Lê payloads de Cakto, Kiwify, Hotmart, Eduzz e formato genérico. */
 export function parsePayment(body: Any): ParsedPayment {
   const d: Any = body?.data ?? body;
   const email: string | null =
     d?.Customer?.email ?? d?.buyer?.email ?? d?.customer?.email ?? d?.cus_email ?? d?.email ?? null;
   const productName: string =
-    d?.Product?.product_name ?? d?.product?.name ?? d?.product_name ?? d?.prod_name ?? d?.product ?? "";
+    d?.Product?.product_name ?? d?.product?.name ?? d?.offer?.name ?? d?.product_name ?? d?.prod_name ?? d?.product ?? "";
   const externalId: string | null = String(
     d?.order_id ?? d?.purchase?.transaction ?? d?.trans_cod ?? d?.transaction_id ?? d?.id ?? "",
   ) || null;

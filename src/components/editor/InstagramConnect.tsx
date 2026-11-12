@@ -12,6 +12,7 @@ interface Acc { id: string; username: string | null; page_name: string | null; p
 const MSG: Record<string, string> = {
   cancelado: "Conexão cancelada.", "nao-configurado": "Configuração Meta incompleta. Configure o login empresarial antes de conectar.",
   expirado: "A conexão expirou, tente de novo.", erro: "Não foi possível conectar. Tente novamente.",
+  limite: "Você atingiu o limite de contas do seu plano. Faça upgrade em Planos.",
   "sem-conta-profissional": "Nenhuma conta profissional do Instagram ligada a uma Página foi encontrada.",
 };
 

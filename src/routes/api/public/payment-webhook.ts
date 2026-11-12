@@ -15,11 +15,11 @@ export const Route = createFileRoute("/api/public/payment-webhook")({
         const secret = process.env["PAYMENT_WEBHOOK_TOKEN"];
         if (!secret) return new Response("not configured", { status: 503 });
         const url = new URL(request.url);
-        const given = url.searchParams.get("token") ?? request.headers.get("x-webhook-token") ?? request.headers.get("x-hotmart-hottok") ?? "";
-        if (!safeEqual(given, secret)) return new Response("unauthorized", { status: 401 });
-
         let body: any;
         try { body = await request.json(); } catch { return new Response("bad json", { status: 400 }); }
+        // Cakto envia a chave secreta no campo "secret" do corpo.
+        const given = url.searchParams.get("token") ?? request.headers.get("x-webhook-token") ?? request.headers.get("x-hotmart-hottok") ?? (typeof body?.secret === "string" ? body.secret : "");
+        if (!safeEqual(given, secret)) return new Response("unauthorized", { status: 401 });
         const p = parsePayment(body);
         if (!p.email || p.event === "ignored") return Response.json({ ok: true, ignored: true });
 

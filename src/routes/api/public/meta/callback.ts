@@ -31,34 +31,43 @@ export const Route = createFileRoute("/api/public/meta/callback")({ server: { ha
       });
       let token = z.string().min(1).parse(response.access_token);
       const rawDebug = await graphRequest(base, "debug_token", `${cfg.appId}|${cfg.appSecret}`, { input_token: token });
+      // Use the token type Meta actually returned: Business Login can issue USER or SYSTEM_USER tokens.
       const actualKind = rawDebug.data?.type;
-      if ((cfg.tokenKind === "system_user" && actualKind !== "SYSTEM_USER") || (cfg.tokenKind === "user" && actualKind !== "USER")) throw new Error("token_configuration_mismatch");
+      const kind: "user" | "system_user" = actualKind === "SYSTEM_USER" ? "system_user" : actualKind === "USER" ? "user" : cfg.tokenKind;
       // Only a Facebook User token uses fb_exchange_token; SUAT is already the delegated system token.
-      if (cfg.tokenKind === "user") {
+      if (kind === "user") {
         const long = await graphRequest(base, "oauth/access_token", `${cfg.appId}|${cfg.appSecret}`, {
           grant_type: "fb_exchange_token", client_id: cfg.appId, client_secret: cfg.appSecret, fb_exchange_token: token,
         });
         token = z.string().min(1).parse(long.access_token);
       }
       const debug = await inspectToken(base, token, cfg.appId, cfg.appSecret);
-      const pages = await discoverAccounts(base, token, cfg.tokenKind, debug);
-      let count = 0;
+      const pages = await discoverAccounts(base, token, kind, debug);
+      const { accountLimit } = await import("@/lib/billing/plans");
+      const { data: bill } = await supabaseAdmin.from("user_billing").select("plan_name, plan_status").eq("user_id", st.user_id).maybeSingle();
+      const limit = accountLimit(bill?.plan_name, bill?.plan_status);
+      const { data: existing } = await supabaseAdmin.from("instagram_accounts").select("ig_user_id").eq("user_id", st.user_id);
+      const known = new Set((existing ?? []).map((a) => a.ig_user_id));
+      let total = known.size;
+      let count = 0, skipped = 0;
       for (const pg of pages) {
         const ig = pg.instagram_business_account;
         if (!ig) continue;
-        const publicationToken = cfg.tokenKind === "system_user" ? token : z.string().min(1).parse(pg.access_token);
-        const publicationDebug = cfg.tokenKind === "system_user" ? debug : await inspectToken(base, publicationToken, cfg.appId, cfg.appSecret);
+        if (!known.has(ig.id)) { if (total >= limit) { skipped++; continue; } total++; }
+        const publicationToken = kind === "system_user" ? token : z.string().min(1).parse(pg.access_token);
+        const publicationDebug = kind === "system_user" ? debug : await inspectToken(base, publicationToken, cfg.appId, cfg.appSecret);
         const expires = publicationDebug.expires_at ? new Date(publicationDebug.expires_at * 1000).toISOString() : null;
         const { data: acc, error: ae } = await supabaseAdmin.from("instagram_accounts").upsert({ user_id: st.user_id,
           ig_user_id: ig.id, username: ig.username, page_id: pg.id, page_name: pg.name,
           profile_picture_url: ig.profile_picture_url ?? null, token_expires_at: expires }, { onConflict: "user_id,ig_user_id" }).select("id").single();
         if (ae || !acc) throw new Error("account_storage");
         const { error: te } = await supabaseAdmin.from("instagram_tokens").upsert({ account_id: acc.id, access_token: publicationToken,
-          token_kind: cfg.tokenKind === "system_user" ? "system_user" : "page", expires_at: expires, data_access_expires_at: publicationDebug.data_access_expires_at ? new Date(publicationDebug.data_access_expires_at * 1000).toISOString() : null,
+          token_kind: kind === "system_user" ? "system_user" : "page", expires_at: expires, data_access_expires_at: publicationDebug.data_access_expires_at ? new Date(publicationDebug.data_access_expires_at * 1000).toISOString() : null,
           revoked_at: null, updated_at: new Date().toISOString() });
         if (te) throw new Error("token_storage");
         count++;
       }
+      if (!count && skipped) return back("limite");
       return back(count ? `conectado-${count}` : "sem-conta-profissional");
     } catch { return back("erro"); } // Never log raw OAuth responses, codes or tokens.
   },
