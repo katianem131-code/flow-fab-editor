@@ -14,7 +14,9 @@ const MSG: Record<string, string> = {
   cancelado: "Conexão cancelada.", "nao-configurado": "Configuração Meta incompleta. Configure o login empresarial antes de conectar.",
   expirado: "A conexão expirou, tente de novo.", erro: "Não foi possível conectar. Tente novamente.",
   limite: "Você atingiu o limite de contas do seu plano. Faça upgrade em Planos.",
-  "sem-conta-profissional": "Nenhuma conta profissional do Instagram ligada a uma Página foi encontrada.",
+  "sem-conta-profissional": "Nenhuma conta profissional do Instagram foi liberada. Conecte de novo e selecione a conta do Instagram.",
+  permissoes: "Faltaram permissões de publicação. Conecte de novo e aceite todas as permissões.",
+  "muitas-contas": "Muitas contas selecionadas. Escolha no máximo 50 por vez.",
 };
 
 export function InstagramConnect() {

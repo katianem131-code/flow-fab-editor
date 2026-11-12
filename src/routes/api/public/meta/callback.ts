@@ -54,21 +54,30 @@ export const Route = createFileRoute("/api/public/meta/callback")({ server: { ha
         const ig = pg.instagram_business_account;
         if (!ig) continue;
         if (!known.has(ig.id)) { if (total >= limit) { skipped++; continue; } total++; }
-        const publicationToken = kind === "system_user" ? token : z.string().min(1).parse(pg.access_token);
-        const publicationDebug = kind === "system_user" ? debug : await inspectToken(base, publicationToken, cfg.appId, cfg.appSecret);
+        // Direct Instagram assets have no Page token; the long-lived user token publishes for them.
+        const publicationToken = kind === "system_user" ? token : (pg.access_token ?? token);
+        const publicationDebug = publicationToken === token ? debug : await inspectToken(base, publicationToken, cfg.appId, cfg.appSecret);
         const expires = publicationDebug.expires_at ? new Date(publicationDebug.expires_at * 1000).toISOString() : null;
         const { data: acc, error: ae } = await supabaseAdmin.from("instagram_accounts").upsert({ user_id: st.user_id,
           ig_user_id: ig.id, username: ig.username, page_id: pg.id, page_name: pg.name,
           profile_picture_url: ig.profile_picture_url ?? null, token_expires_at: expires }, { onConflict: "user_id,ig_user_id" }).select("id").single();
         if (ae || !acc) throw new Error("account_storage");
         const { error: te } = await supabaseAdmin.from("instagram_tokens").upsert({ account_id: acc.id, access_token: publicationToken,
-          token_kind: kind === "system_user" ? "system_user" : "page", expires_at: expires, data_access_expires_at: publicationDebug.data_access_expires_at ? new Date(publicationDebug.data_access_expires_at * 1000).toISOString() : null,
+          token_kind: kind === "system_user" ? "system_user" : pg.access_token ? "page" : "user", expires_at: expires, data_access_expires_at: publicationDebug.data_access_expires_at ? new Date(publicationDebug.data_access_expires_at * 1000).toISOString() : null,
           revoked_at: null, updated_at: new Date().toISOString() });
         if (te) throw new Error("token_storage");
         count++;
       }
       if (!count && skipped) return back("limite");
       return back(count ? `conectado-${count}` : "sem-conta-profissional");
-    } catch { return back("erro"); } // Never log raw OAuth responses, codes or tokens.
+    } catch (e) {
+      // Log only our sanitized error code; never raw OAuth responses, codes or tokens.
+      const c = e instanceof Error && /^[a-z_0-9]+$/.test(e.message) ? e.message : "unexpected";
+      console.error("meta_callback_failed", c);
+      if (c === "asset_configuration_incomplete") return back("sem-conta-profissional");
+      if (c === "reconnect") return back("permissoes");
+      if (c === "too_many_assets") return back("muitas-contas");
+      return back("erro");
+    }
   },
 } } });

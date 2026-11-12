@@ -40,25 +40,42 @@ export async function inspectToken(base: string, token: string, appId: string, s
   return data;
 }
 
-export async function discoverAccounts(base: string, token: string, kind: "user" | "system_user", debug: Awaited<ReturnType<typeof inspectToken>>) {
+type Discovered = { id: string; name?: string; access_token?: string; instagram_business_account?: { id: string; username?: string; profile_picture_url?: string } };
+
+/** Instagram account IDs granted directly (Business Login can delegate the IG asset without its Page). */
+export function grantedInstagramIds(debug: { granular_scopes?: { scope: string; target_ids?: string[] }[] }) {
+  return [...new Set((debug.granular_scopes ?? []).filter((s) => s.scope === "instagram_basic" || s.scope === "instagram_content_publish").flatMap((s) => s.target_ids ?? []))];
+}
+
+export async function discoverAccounts(base: string, token: string, kind: "user" | "system_user", debug: Awaited<ReturnType<typeof inspectToken>>): Promise<Discovered[]> {
+  const igSchema = z.object({ id: z.string(), username: z.string().optional(), profile_picture_url: z.string().optional() });
   const pageSchema = z.object({ id: z.string(), name: z.string().optional(), access_token: z.string().optional(),
-    instagram_business_account: z.object({ id: z.string(), username: z.string().optional(), profile_picture_url: z.string().optional() }).optional() });
+    instagram_business_account: igSchema.optional() });
   const fields = kind === "system_user" ? "id,name,instagram_business_account{id,username,profile_picture_url}" : "id,name,access_token,instagram_business_account{id,username,profile_picture_url}";
+  const pages: Discovered[] = [];
   if (kind === "system_user") {
     // SUAT assets are explicitly delegated; do not assume /me/accounts has Facebook User semantics.
     const ids = [...new Set((debug.granular_scopes ?? []).filter((s) => s.scope === "pages_show_list" || s.scope === "pages_read_engagement").flatMap((s) => s.target_ids ?? []))];
-    if (!ids.length || ids.length > 50) throw new GraphError("asset_configuration_incomplete", false, false);
-    const pages = [];
+    if (ids.length > 50) throw new GraphError("too_many_assets", false, false);
     for (const id of ids) pages.push(pageSchema.parse(await graphRequest(base, id, token, { fields })));
-    return pages;
+  } else {
+    let after: string | undefined;
+    for (let i = 0; ; i++) {
+      if (i >= 10) throw new GraphError("too_many_assets", false, false);
+      const response = await graphRequest(base, "me/accounts", token, { fields, limit: "50", ...(after ? { after } : {}) });
+      pages.push(...z.array(pageSchema).parse(response.data ?? []));
+      if (!response.paging?.next) break;
+      after = z.string().parse(response.paging?.cursors?.after);
+    }
   }
-  const pages = [];
-  let after: string | undefined;
-  for (let i = 0; i < 10; i++) {
-    const response = await graphRequest(base, "me/accounts", token, { fields, limit: "50", ...(after ? { after } : {}) });
-    pages.push(...z.array(pageSchema).parse(response.data));
-    if (!response.paging?.next) return pages;
-    after = z.string().parse(response.paging?.cursors?.after);
+  // Add Instagram assets granted directly that were not reachable through a Page.
+  const found = new Set(pages.map((p) => p.instagram_business_account?.id).filter(Boolean));
+  const direct = grantedInstagramIds(debug).filter((id) => !found.has(id));
+  if (direct.length > 50) throw new GraphError("too_many_assets", false, false);
+  for (const id of direct) {
+    const ig = igSchema.parse(await graphRequest(base, id, token, { fields: "id,username,profile_picture_url" }));
+    pages.push({ id: ig.id, name: ig.username, instagram_business_account: ig });
   }
-  throw new GraphError("too_many_assets", false, false);
+  if (!pages.some((p) => p.instagram_business_account)) throw new GraphError("asset_configuration_incomplete", false, false);
+  return pages;
 }
