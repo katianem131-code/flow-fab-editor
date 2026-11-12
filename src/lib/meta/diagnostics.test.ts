@@ -24,17 +24,28 @@ vi.mock("@/integrations/supabase/client.server", () => {
   } };
 });
 
-type Scenario = { type?: unknown; granular?: unknown[]; meAccounts?: unknown[]; nodes?: Record<string, unknown>; exchangeError?: boolean };
+type Scenario = { type?: unknown; granular?: unknown[]; meAccounts?: unknown[]; mePages?: unknown[][]; meError?: boolean; nodes?: Record<string, unknown>; exchangeError?: boolean };
+let fetched: URL[] = [];
 function graphFetch(sc: Scenario) {
   return vi.fn(async (input: string | URL) => {
-    const u = new URL(String(input)); const path = u.pathname.replace(/^\/v\d+\.0\//, "");
+    const u = new URL(String(input)); fetched.push(u);
+    if (u.host !== "graph.facebook.com") return Response.json({ data: [] });
+    const path = u.pathname.replace(/^\/v\d+\.0\//, "");
     if (path === "oauth/access_token") {
       if (sc.exchangeError) return Response.json({ error: { message: S.graphMsg, code: 100, fbtrace_id: S.business } }, { status: 400 });
       return Response.json({ access_token: u.searchParams.get("grant_type") ? S.long : S.token });
     }
     if (path === "debug_token") return Response.json({ data: { is_valid: true, app_id: "123", user_id: S.user, type: sc.type,
       expires_at: 0, scopes: [...PERMS, S.scope], granular_scopes: sc.granular ?? [] } });
-    if (path === "me/accounts") return Response.json({ data: sc.meAccounts ?? [] });
+    if (path === "me/accounts") {
+      if (sc.meError) return Response.json({ error: { message: S.graphMsg, code: 10 } }, { status: 400 });
+      if (sc.mePages) {
+        const n = Number(u.searchParams.get("after")?.replace("CURSOR", "") ?? 0);
+        const last = n >= sc.mePages.length - 1;
+        return Response.json({ data: sc.mePages[n], paging: last ? {} : { cursors: { after: `CURSOR${n + 1}` }, next: `https://evil.example/${S.page}?after=x` } });
+      }
+      return Response.json({ data: sc.meAccounts ?? [] });
+    }
     const node = sc.nodes?.[path];
     return node ? Response.json(node) : Response.json({ error: { message: S.graphMsg, code: 803 } }, { status: 404 });
   });
@@ -56,7 +67,7 @@ function expectRedacted(all: string) {
 }
 
 beforeEach(() => {
-  logs = []; rpcRows = [{ user_id: S.dbUser, redirect_uri: `${ORIGIN}/api/public/meta/callback` }];
+  logs = []; fetched = []; rpcRows = [{ user_id: S.dbUser, redirect_uri: `${ORIGIN}/api/public/meta/callback` }];
   Object.assign(process.env, { META_APP_ID: "123", META_CONFIG_ID: "456", META_GRAPH_VERSION: "v26.0", META_TOKEN_KIND: "system_user", META_APP_SECRET: S.secret, META_ALLOWED_ORIGINS: "" });
   for (const m of ["log", "info", "warn", "error", "debug"] as const)
     vi.spyOn(console, m).mockImplementation((...a: unknown[]) => { logs.push(a.map((x) => typeof x === "string" ? x : JSON.stringify(x)).join(" ")); });
@@ -84,12 +95,13 @@ describe("diagnostic helpers", () => {
 });
 
 describe("callback instrumentation", () => {
-  it("SYSTEM_USER with no target_ids: records branch, zero counts and keeps sem-conta-profissional", async () => {
+  it("SYSTEM_USER with no target_ids and no assigned Pages: fallback branch, zero counts, sem-conta-profissional", async () => {
     const r = await run({ type: "SYSTEM_USER", granular: PERMS.map((scope) => ({ scope })) });
     expect(r.location).toContain("meta=sem-conta-profissional");
     expect(r.events).toHaveLength(1);
     expect(r.events[0]).toMatchObject({ stage: "discover", reason: "asset_configuration_incomplete", token_type: "SYSTEM_USER",
-      branch: "system_user_target_ids", pages_found: 0, pages_with_instagram: 0, direct_instagram_target_ids: 0 });
+      branch: "system_user_assigned_pages", pages_found: 0, pages_with_instagram: 0, direct_instagram_target_ids: 0 });
+    expect(fetched.filter((u) => u.pathname.endsWith("/me/accounts"))).toHaveLength(1);
     expect(r.events[0].scopes).toContainEqual({ scope: "instagram_basic", target_ids: 0, has_target_ids: false });
     expectRedacted(r.all);
   });
@@ -122,7 +134,7 @@ describe("callback instrumentation", () => {
   it("missing binding cookie and consumed state emit expired_state without contacting Meta", async () => {
     const a = await run({}, { cookie: false });
     expect(a.location).toContain("meta=expirado"); expect(a.events[0]).toMatchObject({ stage: "state", reason: "expired_state" });
-    logs = []; rpcRows = [];
+    logs = []; fetched = []; rpcRows = [];
     const b = await run({});
     expect(b.location).toContain("meta=expirado"); expect(b.events[0]).toMatchObject({ reason: "expired_state" });
     expectRedacted(a.all + b.all);
@@ -130,6 +142,54 @@ describe("callback instrumentation", () => {
   it("cancelled authorization keeps cancelado", async () => {
     const r = await run({}, { error: true });
     expect(r.location).toContain("meta=cancelado"); expect(r.events[0]).toMatchObject({ stage: "code", reason: "cancelled" });
+    expectRedacted(r.all);
+  });
+
+  const unrestricted = PERMS.map((scope) => ({ scope }));
+  const igPage = (n: number) => ({ id: `${S.page}${n}`, name: S.business, instagram_business_account: { id: S.ig, username: S.username } });
+  it("SYSTEM_USER without target_ids finds the account on a later page using cursors only on the Graph host", async () => {
+    const r = await run({ type: "SYSTEM_USER", granular: unrestricted, mePages: [[{ id: S.page, name: S.business }], [igPage(2)]] });
+    expect(r.location).toContain("meta=conectado-1");
+    const calls = fetched.filter((u) => u.pathname.endsWith("/me/accounts"));
+    expect(calls).toHaveLength(2);
+    expect(calls[1].searchParams.get("after")).toBe("CURSOR1");
+    expect(fetched.every((u) => u.host === "graph.facebook.com" && u.pathname.startsWith("/v26.0/"))).toBe(true);
+    expect(calls[0].searchParams.get("fields")).toBe("id,name,instagram_business_account{id,username,profile_picture_url}");
+    expect(r.events[0]).toMatchObject({ branch: "system_user_assigned_pages", reason: "ok", pages_found: 2, pages_with_instagram: 1, accounts_stored: 1 });
+    expectRedacted(r.all);
+  });
+  it("SYSTEM_USER fallback with Pages lacking Instagram keeps sem-conta-profissional and counts them", async () => {
+    const r = await run({ type: "SYSTEM_USER", granular: unrestricted, meAccounts: [{ id: S.page }, { id: `${S.page}b`, name: S.business }] });
+    expect(r.location).toContain("meta=sem-conta-profissional");
+    expect(r.events[0]).toMatchObject({ branch: "system_user_assigned_pages", pages_found: 2, pages_with_instagram: 0 });
+    expectRedacted(r.all);
+  });
+  it("Graph error in the fallback propagates as erro with a fixed reason", async () => {
+    const r = await run({ type: "SYSTEM_USER", granular: unrestricted, meError: true });
+    expect(r.location).toContain("meta=erro");
+    expect(r.events[0]).toMatchObject({ stage: "discover", reason: "graph_error", branch: "system_user_assigned_pages" });
+    expectRedacted(r.all);
+  });
+  it("explicit Page target_ids never trigger the fallback", async () => {
+    const r = await run({ type: "SYSTEM_USER", granular: [{ scope: "pages_show_list", target_ids: [S.page] }, { scope: "pages_read_engagement", target_ids: [S.page] }, { scope: "instagram_basic" }, { scope: "instagram_content_publish" }],
+      nodes: { [S.page]: { id: S.page } } });
+    expect(r.location).toContain("meta=sem-conta-profissional");
+    expect(fetched.some((u) => u.pathname.endsWith("/me/accounts"))).toBe(false);
+    expect(r.events[0]).toMatchObject({ branch: "system_user_target_ids", pages_found: 1 });
+    expectRedacted(r.all);
+  });
+  it("explicit empty target_ids lists keep the restriction (no fallback)", async () => {
+    const r = await run({ type: "SYSTEM_USER", granular: PERMS.map((scope) => ({ scope, target_ids: [] })) });
+    expect(r.location).toContain("meta=sem-conta-profissional");
+    expect(fetched.some((u) => u.pathname.endsWith("/me/accounts"))).toBe(false);
+    expect(r.events[0]).toMatchObject({ branch: "system_user_target_ids", pages_found: 0 });
+  });
+  it("direct Instagram target_ids stay on the explicit branch even when Page scopes have none", async () => {
+    const r = await run({ type: "SYSTEM_USER", granular: [{ scope: "pages_show_list" }, { scope: "pages_read_engagement" }, { scope: "instagram_basic", target_ids: [S.ig] }, { scope: "instagram_content_publish", target_ids: [S.ig] }],
+      nodes: { [S.ig]: { id: S.ig, username: S.username } } });
+    expect(r.location).toContain("meta=conectado-1");
+    expect(fetched.some((u) => u.pathname.endsWith("/me/accounts"))).toBe(false);
+    expect(r.events[0]).toMatchObject({ branch: "system_user_target_ids", direct_instagram_added: 1 });
     expectRedacted(r.all);
   });
 });

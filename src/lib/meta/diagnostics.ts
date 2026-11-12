@@ -6,7 +6,7 @@ import { z } from "zod";
  * cookies, asset/user/business IDs, usernames, URLs, headers, raw payloads or Graph messages.
  */
 export const TOKEN_TYPES = ["USER", "SYSTEM_USER", "PAGE", "UNKNOWN", "MISSING"] as const;
-export const BRANCHES = ["none", "user_me_accounts", "system_user_target_ids"] as const;
+export const BRANCHES = ["none", "user_me_accounts", "system_user_target_ids", "system_user_assigned_pages"] as const;
 export const STAGES = ["state", "code", "config", "token_exchange", "token_type", "long_lived_exchange",
   "inspect", "discover", "store", "done"] as const;
 export const REASONS = ["ok", "expired_state", "cancelled", "not_configured", "asset_configuration_incomplete",
