@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { PUBLICATION_PERMISSIONS } from "./config";
+import type { Diag } from "./diagnostics";
 
 const errorSchema = z.object({ code: z.number().optional(), is_transient: z.boolean().optional() }).passthrough();
 export class GraphError extends Error {
@@ -47,12 +48,13 @@ export function grantedInstagramIds(debug: { granular_scopes?: { scope: string; 
   return [...new Set((debug.granular_scopes ?? []).filter((s) => s.scope === "instagram_basic" || s.scope === "instagram_content_publish").flatMap((s) => s.target_ids ?? []))];
 }
 
-export async function discoverAccounts(base: string, token: string, kind: "user" | "system_user", debug: Awaited<ReturnType<typeof inspectToken>>): Promise<Discovered[]> {
+export async function discoverAccounts(base: string, token: string, kind: "user" | "system_user", debug: Awaited<ReturnType<typeof inspectToken>>, diag?: Diag): Promise<Discovered[]> {
   const igSchema = z.object({ id: z.string(), username: z.string().optional(), profile_picture_url: z.string().optional() });
   const pageSchema = z.object({ id: z.string(), name: z.string().optional(), access_token: z.string().optional(),
     instagram_business_account: igSchema.optional() });
   const fields = kind === "system_user" ? "id,name,instagram_business_account{id,username,profile_picture_url}" : "id,name,access_token,instagram_business_account{id,username,profile_picture_url}";
   const pages: Discovered[] = [];
+  diag?.set({ branch: kind === "system_user" ? "system_user_target_ids" : "user_me_accounts" });
   if (kind === "system_user") {
     // SUAT assets are explicitly delegated; do not assume /me/accounts has Facebook User semantics.
     const ids = [...new Set((debug.granular_scopes ?? []).filter((s) => s.scope === "pages_show_list" || s.scope === "pages_read_engagement").flatMap((s) => s.target_ids ?? []))];
@@ -71,10 +73,12 @@ export async function discoverAccounts(base: string, token: string, kind: "user"
   // Add Instagram assets granted directly that were not reachable through a Page.
   const found = new Set(pages.map((p) => p.instagram_business_account?.id).filter(Boolean));
   const direct = grantedInstagramIds(debug).filter((id) => !found.has(id));
+  diag?.set({ pages_found: pages.length, pages_with_instagram: found.size, direct_instagram_target_ids: grantedInstagramIds(debug).length });
   if (direct.length > 50) throw new GraphError("too_many_assets", false, false);
   for (const id of direct) {
     const ig = igSchema.parse(await graphRequest(base, id, token, { fields: "id,username,profile_picture_url" }));
     pages.push({ id: ig.id, name: ig.username, instagram_business_account: ig });
+    diag?.set({ direct_instagram_added: (diag.event.direct_instagram_added ?? 0) + 1 });
   }
   if (!pages.some((p) => p.instagram_business_account)) throw new GraphError("asset_configuration_incomplete", false, false);
   return pages;

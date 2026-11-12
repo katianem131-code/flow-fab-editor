@@ -15,3 +15,4 @@
 - Cloud sync lives in `src/lib/cloud/sync.ts`; local stores (batches, batchStorage, schedule) call it fire-and-forget so the app still works signed out and offline.
 - Meta OAuth uses server-configured Business Login code flow and an HttpOnly per-attempt binding plus an atomic session-bound state RPC; browser code never receives provider tokens.
 - Instagram delivery uses service-only leased RPCs and stable per-account destination rows; persist write intent before requests and reconcile unknown outcomes without replaying completed destinations.
+- Meta callback diagnostics go only through `src/lib/meta/diagnostics.ts` (schema-validated enums and counts with a random per-attempt ID); never log tokens, codes, state, IDs, usernames, URLs or raw Graph data.
