@@ -40,3 +40,36 @@ export function bindingCookie(headers: Headers, state: string) {
   return (headers.get("cookie") ?? "").split(";").map((s) => s.trim())
     .find((s) => s.startsWith(`meta_binding_${state}=`))?.split("=")[1] ?? "";
 }
+function exactOrigin(value: string | null) {
+  if (!value) return null;
+  try {
+    const u = new URL(value);
+    return u.origin === "null" ? null : u.origin;
+  } catch { return null; }
+}
+
+/**
+ * Verifies the browser-reported request origin. Origin is authoritative when present (no fallback);
+ * Referer is consulted only when Origin is absent. Forwarded headers are never trusted.
+ */
+export function verifyRequestOrigin(headers: Headers, claimed: string, extras = ""): boolean {
+  if (!allowedOrigin(claimed, extras)) return false;
+  const origin = headers.get("origin");
+  if (origin !== null) {
+    const parsed = exactOrigin(origin);
+    return parsed !== null && origin === parsed && parsed === claimed;
+  }
+  const referer = exactOrigin(headers.get("referer"));
+  return referer !== null && referer === claimed;
+}
+
+export const START_ERROR_MESSAGES: Record<string, string> = {
+  configuracao_incompleta: "Configuração Meta incompleta. Fale com o administrador.",
+  origem_invalida: "Este endereço não está autorizado para conectar o Instagram. Use o app publicado.",
+  falha_sessao: "Sua sessão não é válida. Saia e entre novamente.",
+  falha_estado: "Não foi possível preparar a conexão. Tente novamente em instantes.",
+};
+export function startErrorMessage(error: unknown) {
+  const code = error instanceof Error ? error.message : "";
+  return START_ERROR_MESSAGES[code] ?? "Não foi possível iniciar conexão. Tente novamente.";
+}

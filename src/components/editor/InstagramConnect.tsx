@@ -5,6 +5,7 @@ import { useNavigate } from "@tanstack/react-router";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { getMetaConfig, startMetaConnect } from "@/lib/meta/meta.functions";
+import { startErrorMessage } from "@/lib/meta/config";
 import { Button } from "@/components/ui/button";
 
 interface Acc { id: string; username: string | null; page_name: string | null; profile_picture_url: string | null; token_expires_at: string | null }
@@ -37,7 +38,7 @@ export function InstagramConnect() {
     if (!configured) return toast.error(MSG["nao-configurado"]);
     setBusy(true);
     try { const result = await startMetaConnect({ data: { origin: window.location.origin } }); window.location.assign(result.url); }
-    catch { toast.error("Não foi possível iniciar conexão. Confira a configuração Meta e entre novamente."); }
+    catch (error) { toast.error(startErrorMessage(error)); }
     finally { setBusy(false); }
   }
   async function remove(id: string) {
