@@ -751,6 +751,8 @@ export function TemplateStudioDialog({ open, onClose, templateToEdit, onSaved }:
         fontSize:        headlineStyle.fontSize / 10,
         font:            storeFont,
       });
+    } else {
+      updateGlobalTitle({ enabled: false, text: "" });
     }
     toast.success(`Template "${newTemplate.name}" salvo e aplicado!`);
     onSaved?.(newTemplate);

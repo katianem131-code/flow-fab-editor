@@ -189,7 +189,13 @@ export const useEditor = create<EditorState>((set, get) => ({
                 fontSize: 3.8,
               },
             }
-          : {};
+          : !template.sampleHeadline &&
+              s.globalTitle.enabled &&
+              getAllTemplates().some(
+                (t) => t.sampleHeadline && t.sampleHeadline === s.globalTitle.text,
+              )
+            ? { globalTitle: { ...s.globalTitle, enabled: false, text: "" } }
+            : {};
       if (s.editMode === "single") {
         if (!s.items.some((i) => i.id === s.selectedId)) return s;
         return {
