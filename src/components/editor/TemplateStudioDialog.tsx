@@ -93,6 +93,16 @@ function getFontCss(v: string) {
 // ── Types ──────────────────────────────────────────────────────────────────────
 type SelectedLayer = "video1" | "video2" | "headline" | "overlay" | "masks" | null;
 
+interface HeadlineItem {
+  id: string;
+  text: string;
+  style: HeadlineStyle;
+  visible: boolean;
+}
+
+const SAMPLE_HEADLINE = "meu maior arrependimento foi não ter seguido essa página antes 😜";
+const newHeadlineId = () => `hl_${Math.random().toString(36).slice(2, 9)}`;
+
 interface LayerItem {
   id: string;
   name: string;
@@ -110,6 +120,7 @@ interface Props {
 interface DragState {
   kind: "move" | "resize";
   layer: "video2" | "headline";
+  hlId?: string;
   startMouseX: number;
   startMouseY: number;
   startSplitRatio: number;
@@ -148,7 +159,11 @@ function HeadlinePropertiesPanel({
   onChange,
   sampleText,
   onSampleTextChange,
+  label = "Headline 1",
+  onRemove,
 }: {
+  label?: string;
+  onRemove?: () => void;
   style: HeadlineStyle;
   onChange: React.Dispatch<React.SetStateAction<HeadlineStyle>>;
   sampleText: string;
@@ -162,7 +177,12 @@ function HeadlinePropertiesPanel({
       {/* Title */}
       <div className="flex items-center gap-2 text-sm font-semibold text-foreground">
         <span className="font-black text-amber-400 text-base leading-none">T</span>
-        Headline 1
+        {label}
+        {onRemove && (
+          <button type="button" onClick={onRemove} className="ml-auto p-1 text-zinc-500 hover:text-destructive" title="Remover headline">
+            <Trash2 className="h-3.5 w-3.5" />
+          </button>
+        )}
       </div>
 
       {/* Sample text */}
@@ -604,6 +624,7 @@ export function TemplateStudioDialog({ open, onClose, templateToEdit, onSaved }:
   );
   const updateGlobalBorders = useEditor((s) => s.updateGlobalBorders);
   const updateGlobalTitle   = useEditor((s) => s.updateGlobalTitle);
+  const setExtraTitles      = useEditor((s) => s.setExtraTitles);
   const overlay = useEditor((s) => s.overlay);
   const updateOverlay = useEditor((s) => s.updateOverlay);
   const masksEnabled = useMasks((s) => s.enabled);
@@ -628,18 +649,41 @@ export function TemplateStudioDialog({ open, onClose, templateToEdit, onSaved }:
     ...DEFAULT_SECOND_MEDIA,
     enabled: true,
   });
-  const [sampleHeadline, setSampleHeadline] = useState(
-    "meu maior arrependimento foi não ter seguido essa página antes 😜",
-  );
-
-  // ── Headline style ───────────────────────────────────────────────────────────
-  const [headlineStyle, setHeadlineStyle] = useState<HeadlineStyle>({
-    ...DEFAULT_HEADLINE_STYLE,
-  });
+  // ── Headlines (várias) ───────────────────────────────────────────────────────
+  const [headlines, setHeadlines] = useState<HeadlineItem[]>([
+    { id: "hl1", text: SAMPLE_HEADLINE, style: { ...DEFAULT_HEADLINE_STYLE }, visible: true },
+  ]);
+  const [activeHlId, setActiveHlId] = useState("hl1");
+  const activeHl = headlines.find((h) => h.id === activeHlId) ?? headlines[0];
+  const activeHlIndex = activeHl ? headlines.indexOf(activeHl) : -1;
+  const updateHeadline = (id: string, patch: Partial<HeadlineItem>) =>
+    setHeadlines((prev) => prev.map((h) => (h.id === id ? { ...h, ...patch } : h)));
+  const setStyleFor = (id: string, updater: (prev: HeadlineStyle) => HeadlineStyle) =>
+    setHeadlines((prev) => prev.map((h) => (h.id === id ? { ...h, style: updater(h.style) } : h)));
+  const sampleHeadline = activeHl?.text ?? "";
+  const setSampleHeadline = (text: string) => activeHl && updateHeadline(activeHl.id, { text });
+  const headlineStyle = activeHl?.style ?? DEFAULT_HEADLINE_STYLE;
+  const setHeadlineStyle: React.Dispatch<React.SetStateAction<HeadlineStyle>> = (action) => {
+    if (!activeHl) return;
+    setStyleFor(activeHl.id, (prev) => (typeof action === "function" ? action(prev) : action));
+  };
+  const addHeadline = () => {
+    const id = newHeadlineId();
+    const offset = (headlines.length * 12) % 60;
+    setHeadlines((prev) => [
+      ...prev,
+      { id, text: "Nova headline", style: { ...DEFAULT_HEADLINE_STYLE, y: Math.min(90, 20 + offset) }, visible: true },
+    ]);
+    setActiveHlId(id);
+    setSelectedLayer("headline");
+  };
+  const removeHeadline = (id: string) => {
+    setHeadlines((prev) => prev.filter((h) => h.id !== id));
+    if (activeHlId === id) setSelectedLayer(null);
+  };
 
   // ── Layers ───────────────────────────────────────────────────────────────────
   const [layers, setLayers] = useState<LayerItem[]>([
-    { id: "headline", name: "Headline 1",                     type: "headline", visible: true },
     { id: "video2",   name: "Vídeo 2 (gameplay / satisfying)", type: "video2",   visible: true },
     { id: "video1",   name: "Vídeo 1 (principal)",       type: "video1",   visible: true },
   ]);
@@ -678,7 +722,7 @@ export function TemplateStudioDialog({ open, onClose, templateToEdit, onSaved }:
           ? { ...templateToEdit.borders.secondMedia }
           : { ...DEFAULT_SECOND_MEDIA, enabled: false },
       );
-      if (templateToEdit.sampleHeadline) setSampleHeadline(templateToEdit.sampleHeadline);
+      setHeadlines([{ id: "hl1", text: templateToEdit.sampleHeadline ?? "", style: { ...DEFAULT_HEADLINE_STYLE }, visible: !!templateToEdit.sampleHeadline }]);
     } else {
       setTemplateName("Studio - Dois vídeos");
       setBgColor("#000000");
@@ -691,11 +735,10 @@ export function TemplateStudioDialog({ open, onClose, templateToEdit, onSaved }:
         splitRatio: 50,
         gap: 1.5,
       });
-      setSampleHeadline("meu maior arrependimento foi não ter seguido essa página antes 😜");
+      setHeadlines([{ id: "hl1", text: SAMPLE_HEADLINE, style: { ...DEFAULT_HEADLINE_STYLE }, visible: true }]);
     }
-    setHeadlineStyle({ ...DEFAULT_HEADLINE_STYLE });
+    setActiveHlId("hl1");
     setLayers([
-      { id: "headline", name: "Headline 1",                     type: "headline", visible: true },
       { id: "video2",   name: "Vídeo 2 (gameplay / satisfying)", type: "video2",   visible: true },
       { id: "video1",   name: "Vídeo 1 (principal)",       type: "video1",   visible: true },
     ]);
@@ -721,16 +764,16 @@ export function TemplateStudioDialog({ open, onClose, templateToEdit, onSaved }:
           ...prev,
           splitRatio: Math.round(Math.max(20, Math.min(80, newRatio)) * 10) / 10,
         }));
-      } else if (drag.layer === "headline") {
+      } else if (drag.layer === "headline" && drag.hlId) {
         if (drag.kind === "move") {
-          setHeadlineStyle((prev) => ({
+          setStyleFor(drag.hlId, (prev) => ({
             ...prev,
             x: Math.round(Math.max(5, Math.min(95, drag.startHX + dxPct)) * 10) / 10,
             y: Math.round(Math.max(5, Math.min(95, drag.startHY + dyPct)) * 10) / 10,
           }));
         } else {
           // resize: drag bottom-right corner → widen/narrow
-          setHeadlineStyle((prev) => ({
+          setStyleFor(drag.hlId, (prev) => ({
             ...prev,
             width: Math.round(Math.max(10, Math.min(100, drag.startHW + dxPct * 2)) * 10) / 10,
           }));
@@ -753,21 +796,25 @@ export function TemplateStudioDialog({ open, onClose, templateToEdit, onSaved }:
     e: React.MouseEvent,
     layer: "video2" | "headline",
     kind: "move" | "resize",
+    hl?: HeadlineItem,
   ) => {
     e.preventDefault();
     e.stopPropagation();
     setSelectedLayer(layer);
     const rect = previewRef.current?.getBoundingClientRect();
     if (!rect) return;
+    if (hl) setActiveHlId(hl.id);
+    const hs = hl?.style ?? headlineStyle;
     dragRef.current = {
       kind,
       layer,
+      hlId: hl?.id,
       startMouseX: e.clientX,
       startMouseY: e.clientY,
       startSplitRatio: secondMedia.splitRatio,
-      startHX: headlineStyle.x,
-      startHY: headlineStyle.y,
-      startHW: headlineStyle.width,
+      startHX: hs.x,
+      startHY: hs.y,
+      startHW: hs.width,
       previewW: rect.width,
       previewH: rect.height,
     };
@@ -777,7 +824,7 @@ export function TemplateStudioDialog({ open, onClose, templateToEdit, onSaved }:
   const toggleLayer = (id: string) =>
     setLayers((prev) => prev.map((l) => (l.id === id ? { ...l, visible: !l.visible } : l)));
 
-  const headlineLayer = layers.find((l) => l.id === "headline");
+  const shownHeadlines = headlines.filter((h) => h.visible && h.text.trim());
   const video2Layer   = layers.find((l) => l.id === "video2");
   const video1Layer   = layers.find((l) => l.id === "video1");
 
@@ -810,29 +857,34 @@ export function TemplateStudioDialog({ open, onClose, templateToEdit, onSaved }:
       borders: finalBorders,
       surface: bgColor === "#E6C51A" ? "yellow" : bgColor === "#ffffff" ? "light" : "dark",
       isCustom: true,
-      sampleHeadline: headlineLayer?.visible ? sampleHeadline : undefined,
+      sampleHeadline: shownHeadlines[0]?.text,
     };
     saveCustomTemplate(newTemplate);
     updateGlobalBorders(finalBorders);
-    if (headlineLayer?.visible && sampleHeadline.trim()) {
+    const toTitle = (h: HeadlineItem) => {
+      const st = h.style;
       const storeFont: "system" | "serif" | "mono" =
-        headlineStyle.font === "serif"
-          ? "serif"
-          : headlineStyle.font === "mono"
-            ? "mono"
-            : "system";
-      updateGlobalTitle({
+        st.font === "serif" ? "serif" : st.font === "mono" ? "mono" : "system";
+      return {
+        ...useEditor.getState().globalTitle,
         enabled:         true,
-        text:            sampleHeadline,
-        position:        "center",
-        background:      headlineStyle.hasBox,
-        backgroundColor: headlineStyle.boxColor,
-        color:           headlineStyle.color,
-        fontSize:        headlineStyle.fontSize / 10,
+        text:            h.text,
+        position:        "center" as const,
+        posX:            st.x,
+        posY:            st.y,
+        background:      st.hasBox,
+        backgroundColor: st.boxColor,
+        color:           st.color,
+        fontSize:        st.fontSize / 10,
         font:            storeFont,
-      });
+      };
+    };
+    if (shownHeadlines.length > 0) {
+      updateGlobalTitle(toTitle(shownHeadlines[0]));
+      setExtraTitles(shownHeadlines.slice(1).map((h) => ({ ...toTitle(h), lines: "" })));
     } else {
       updateGlobalTitle({ enabled: false, text: "" });
+      setExtraTitles([]);
     }
     toast.success(`Template "${newTemplate.name}" salvo e aplicado!`);
     onSaved?.(newTemplate);
@@ -840,15 +892,19 @@ export function TemplateStudioDialog({ open, onClose, templateToEdit, onSaved }:
   };
 
   // ── Derived headline style ────────────────────────────────────────────────────
+  const renderHeadline = (hl: HeadlineItem) => {
+  const headlineStyle = hl.style;
+  const isSel = selectedLayer === "headline" && activeHl?.id === hl.id;
   const hlFontCss = getFontCss(headlineStyle.font);
   const hlOutline = headlineStyle.hasOutline
     ? "-1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 1px 1px 0 #000, 0 2px 4px rgba(0,0,0,0.5)"
     : "none";
 
-  const headlineEl = headlineLayer?.visible && sampleHeadline.trim() ? (
+  return (
     <div
+      key={hl.id}
       className={`absolute z-20 ${
-        selectedLayer === "headline" ? "cursor-grabbing" : "cursor-grab"
+        isSel ? "cursor-grabbing" : "cursor-grab"
       }`}
       style={{
         left:      `${headlineStyle.x}%`,
@@ -857,8 +913,8 @@ export function TemplateStudioDialog({ open, onClose, templateToEdit, onSaved }:
         transform: `translate(-50%, -50%) rotate(${headlineStyle.rotation}deg)`,
         opacity:   headlineStyle.opacity / 100,
       }}
-      onClick={(e) => { e.stopPropagation(); setSelectedLayer("headline"); }}
-      onMouseDown={(e) => startDrag(e, "headline", "move")}
+      onClick={(e) => { e.stopPropagation(); setActiveHlId(hl.id); setSelectedLayer("headline"); }}
+      onMouseDown={(e) => startDrag(e, "headline", "move", hl)}
     >
       <div
         style={{
@@ -878,22 +934,24 @@ export function TemplateStudioDialog({ open, onClose, templateToEdit, onSaved }:
           textShadow:  hlOutline,
         }}
       >
-        {sampleHeadline}
+        {hl.text}
       </div>
 
-      {selectedLayer === "headline" && (
+      {isSel && (
         <>
           {/* Selection border */}
           <div className="absolute inset-0 border-2 border-dashed border-emerald-400 pointer-events-none rounded" />
           {/* Bottom-right resize handle */}
           <div
             className="absolute bottom-0 right-0 h-3 w-3 bg-emerald-400 border border-zinc-950 cursor-se-resize z-10"
-            onMouseDown={(e) => { e.stopPropagation(); startDrag(e, "headline", "resize"); }}
+            onMouseDown={(e) => { e.stopPropagation(); startDrag(e, "headline", "resize", hl); }}
           />
         </>
       )}
     </div>
-  ) : null;
+  );
+  };
+  const headlineEl = <>{shownHeadlines.map(renderHeadline)}</>;
 
   const v1Style: React.CSSProperties = {
     objectPosition: `${borders.posX}% ${borders.posY}%`,
@@ -957,6 +1015,8 @@ export function TemplateStudioDialog({ open, onClose, templateToEdit, onSaved }:
                     onChange={setHeadlineStyle}
                     sampleText={sampleHeadline}
                     onSampleTextChange={setSampleHeadline}
+                    label={`Headline ${activeHlIndex + 1}`}
+                    onRemove={headlines.length > 1 && activeHl ? () => removeHeadline(activeHl.id) : undefined}
                   />
                 )}
 
@@ -1195,6 +1255,47 @@ export function TemplateStudioDialog({ open, onClose, templateToEdit, onSaved }:
                         </Button>
                       </div>
                     ))}
+                    {headlines.map((hl, i) => (
+                      <div
+                        key={hl.id}
+                        onClick={() => { setActiveHlId(hl.id); setSelectedLayer("headline"); }}
+                        className={`flex items-center justify-between rounded-lg border px-3 py-2 text-xs transition cursor-pointer ${
+                          hl.visible
+                            ? "border-zinc-800 bg-zinc-950 text-foreground hover:border-primary/60"
+                            : "border-zinc-800/40 bg-zinc-950/40 text-muted-foreground opacity-60"
+                        }`}
+                      >
+                        <div className="flex items-center gap-2 truncate">
+                          <span className="font-black text-amber-400 text-sm leading-none">T</span>
+                          <span className="truncate font-medium">Headline {i + 1}</span>
+                        </div>
+                        <div className="flex items-center gap-1 shrink-0">
+                          <button
+                            type="button"
+                            onClick={(e) => { e.stopPropagation(); updateHeadline(hl.id, { visible: !hl.visible }); }}
+                            className="p-1 text-zinc-400 hover:text-foreground transition"
+                            title={hl.visible ? "Ocultar" : "Mostrar"}
+                          >
+                            {hl.visible ? <Eye className="h-3.5 w-3.5" /> : <EyeOff className="h-3.5 w-3.5" />}
+                          </button>
+                          <button
+                            type="button"
+                            onClick={(e) => { e.stopPropagation(); removeHeadline(hl.id); }}
+                            className="p-1 text-zinc-500 hover:text-destructive transition"
+                            title="Remover headline"
+                          >
+                            <Trash2 className="h-3.5 w-3.5" />
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                    <button
+                      type="button"
+                      onClick={addHeadline}
+                      className="flex w-full items-center justify-center gap-1 rounded-lg border border-dashed border-zinc-700 px-3 py-2 text-xs font-medium text-zinc-300 hover:border-primary/60 hover:text-foreground transition"
+                    >
+                      <Plus className="h-3.5 w-3.5" /> Adicionar headline
+                    </button>
                     {layers.map((layer) => {
                       const hidden = !layer.visible;
                       return (
@@ -1263,7 +1364,7 @@ export function TemplateStudioDialog({ open, onClose, templateToEdit, onSaved }:
                   Clique para selecionar · arraste para mover · puxe o canto para redimensionar.
                 </p>
               </div>
-              {headlineLayer?.visible && (
+              {activeHl?.visible && (
                 <div className="flex items-center gap-2 max-w-sm w-full">
                   <span className="text-[11px] text-muted-foreground whitespace-nowrap">
                     Headline:

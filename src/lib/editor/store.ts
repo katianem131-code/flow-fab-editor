@@ -56,6 +56,8 @@ interface EditorState {
   globalBorders: BorderSettings;
   globalTitle: TextOverlaySettings;
   globalLower: TextOverlaySettings;
+  extraTitles: TextOverlaySettings[];
+  setExtraTitles: (t: TextOverlaySettings[]) => void;
   overlay: OverlaySettings;
   overlayPresets: OverlayPreset[];
   stylePresets: StylePreset[];
@@ -107,6 +109,8 @@ export const useEditor = create<EditorState>((set, get) => ({
   globalBorders: { ...DEFAULT_BORDERS },
   globalTitle: { ...DEFAULT_TITLE },
   globalLower: { ...DEFAULT_LOWER },
+  extraTitles: [],
+  setExtraTitles: (t) => set({ extraTitles: t }),
   overlay: { ...DEFAULT_OVERLAY },
   overlayPresets: [],
   stylePresets: [],
@@ -194,7 +198,7 @@ export const useEditor = create<EditorState>((set, get) => ({
               getAllTemplates().some(
                 (t) => t.sampleHeadline && t.sampleHeadline === s.globalTitle.text,
               )
-            ? { globalTitle: { ...s.globalTitle, enabled: false, text: "" } }
+            ? { globalTitle: { ...s.globalTitle, enabled: false, text: "" }, extraTitles: [] }
             : {};
       if (s.editMode === "single") {
         if (!s.items.some((i) => i.id === s.selectedId)) return s;
@@ -311,6 +315,7 @@ export const useEditor = create<EditorState>((set, get) => ({
     set((s) => ({
       globalBorders: { ...DEFAULT_BORDERS },
       globalTitle: { ...DEFAULT_TITLE },
+      extraTitles: [],
       globalLower: { ...DEFAULT_LOWER },
       overlay: { ...DEFAULT_OVERLAY },
       items: s.items.map((i) => ({ ...i, borders: null, titleOverride: undefined })),

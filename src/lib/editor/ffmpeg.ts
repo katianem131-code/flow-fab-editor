@@ -147,6 +147,7 @@ export interface ProcessOptions {
   borders: BorderSettings;
   title?: { settings: TextOverlaySettings; text: string };
   lower?: { settings: TextOverlaySettings; text: string };
+  extraTitles?: TextOverlaySettings[];
   overlay?: OverlaySettings;
   antiDup?: AntiDupSettings;
   /** Source duration in seconds (needed to trim the end). */
@@ -178,6 +179,10 @@ export async function processVideo(
   }
   if (opts.title) {
     const f = buildTextFilter(opts.title.settings, opts.title.text, opts.borders.aspect);
+    if (f) filters.push(f);
+  }
+  for (const t of opts.extraTitles ?? []) {
+    const f = buildTextFilter(t, t.text, opts.borders.aspect);
     if (f) filters.push(f);
   }
   if (opts.lower) {

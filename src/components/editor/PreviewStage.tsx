@@ -14,6 +14,7 @@ export function PreviewStage() {
   const global = useEditor((s) => s.globalBorders);
   const title = useEditor((s) => s.globalTitle);
   const lower = useEditor((s) => s.globalLower);
+  const extraTitles = useEditor((s) => s.extraTitles);
   const overlay = useEditor((s) => s.overlay);
   const antiDup = useAntiDup((s) => s.antiDup);
   const isMirrored = antiDup.enabled && antiDup.mirror;
@@ -393,6 +394,9 @@ export function PreviewStage() {
               settings={title}
               text={titleTextForItem(item, itemIndex < 0 ? 0 : itemIndex, title)}
             />
+            {extraTitles.map((t, i) => (
+              <TextOverlay key={i} settings={t} text={t.text} />
+            ))}
             <TextOverlay settings={lower} text={lower.text} />
             {overlay.enabled && overlay.src && (
               <img

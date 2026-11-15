@@ -51,6 +51,7 @@ export function ProcessBar() {
             title: globalTitle.enabled
               ? { settings: globalTitle, text: titleTextForItem(it, originalIndex, globalTitle) }
               : undefined,
+            extraTitles: useEditor.getState().extraTitles,
             lower: globalLower.enabled
               ? { settings: globalLower, text: globalLower.text }
               : undefined,
