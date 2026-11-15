@@ -12,3 +12,4 @@
 - [x] Complete configuration-only validation after secure entry of the existing META_APP_SECRET, without exposing or rotating credentials.
 - [x] Permit only the approved live-preview origin alongside production, validate exact allowlist without OAuth, and document the test callback without deployment.
 - [x] Add the exact id-preview origin to META_ALLOWED_ORIGINS in place (no deletion), keeping production and the previous preview origin, without OAuth, deployment or code changes.
+- [x] Move overlay and mask controls into Template Studio Layers and verify with an uploaded video.

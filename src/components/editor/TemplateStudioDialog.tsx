@@ -31,6 +31,10 @@ import {
 import { VideoTemplate, saveCustomTemplate } from "@/lib/editor/templates";
 import { useEditor } from "@/lib/editor/store";
 import { toast } from "sonner";
+import { Button } from "@/components/ui/button";
+import { OverlayTab } from "./OverlayTab";
+import { MasksTab, MaskPreviewLayer } from "./MasksTab";
+import { useMasks } from "@/lib/editor/masks";
 
 // ── Headline Style ─────────────────────────────────────────────────────────────
 export interface HeadlineStyle {
@@ -87,7 +91,7 @@ function getFontCss(v: string) {
 }
 
 // ── Types ──────────────────────────────────────────────────────────────────────
-type SelectedLayer = "video1" | "video2" | "headline" | null;
+type SelectedLayer = "video1" | "video2" | "headline" | "overlay" | "masks" | null;
 
 interface LayerItem {
   id: string;
@@ -600,6 +604,15 @@ export function TemplateStudioDialog({ open, onClose, templateToEdit, onSaved }:
   );
   const updateGlobalBorders = useEditor((s) => s.updateGlobalBorders);
   const updateGlobalTitle   = useEditor((s) => s.updateGlobalTitle);
+  const overlay = useEditor((s) => s.overlay);
+  const updateOverlay = useEditor((s) => s.updateOverlay);
+  const masksEnabled = useMasks((s) => s.enabled);
+  const setMasksEnabled = useMasks((s) => s.setEnabled);
+  const hydrateMasks = useMasks((s) => s.hydrate);
+
+  useEffect(() => {
+    if (open) hydrateMasks();
+  }, [open, hydrateMasks]);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const previewRef   = useRef<HTMLDivElement>(null);
@@ -959,6 +972,8 @@ export function TemplateStudioDialog({ open, onClose, templateToEdit, onSaved }:
                 {selectedLayer === "video1" && (
                   <Video1PropertiesPanel borders={borders} onChange={setBorders} splitMode={secondMedia.enabled && !!video2Layer?.visible} />
                 )}
+                {selectedLayer === "overlay" && <OverlayTab />}
+                {selectedLayer === "masks" && <MasksTab />}
               </>
             ) : (
               <>
@@ -1166,6 +1181,20 @@ export function TemplateStudioDialog({ open, onClose, templateToEdit, onSaved }:
                     Clique na camada para editar suas propriedades
                   </p>
                   <div className="space-y-1.5">
+                    {([
+                      { id: "overlay", name: "Overlay (marca/logo)", visible: overlay.enabled, toggle: () => updateOverlay({ enabled: !overlay.enabled }) },
+                      { id: "masks", name: "Máscara / Cobertura", visible: masksEnabled, toggle: () => setMasksEnabled(!masksEnabled) },
+                    ] as const).map((layer) => (
+                      <div key={layer.id} className="flex items-center gap-1 rounded-lg border border-border bg-surface">
+                        <Button variant="ghost" className="min-w-0 flex-1 justify-start gap-2 text-xs" onClick={() => setSelectedLayer(layer.id)}>
+                          <Layers className="h-3.5 w-3.5 shrink-0 text-primary" />
+                          <span className="truncate">{layer.name}</span>
+                        </Button>
+                        <Button variant="ghost" size="icon" onClick={layer.toggle} aria-label={`${layer.visible ? "Ocultar" : "Mostrar"} ${layer.name}`} title={layer.visible ? "Ocultar" : "Mostrar"}>
+                          {layer.visible ? <Eye className="h-3.5 w-3.5" /> : <EyeOff className="h-3.5 w-3.5" />}
+                        </Button>
+                      </div>
+                    ))}
                     {layers.map((layer) => {
                       const hidden = !layer.visible;
                       return (
@@ -1390,6 +1419,21 @@ export function TemplateStudioDialog({ open, onClose, templateToEdit, onSaved }:
                     </div>
                     {headlineEl}
                   </div>
+                )}
+                <div className="pointer-events-none absolute inset-0 z-10 [&>div]:pointer-events-auto" onClick={(e) => { e.stopPropagation(); setSelectedLayer("masks"); }}>
+                  <MaskPreviewLayer />
+                </div>
+                {overlay.enabled && overlay.src && (
+                  <img
+                    src={overlay.src}
+                    alt="Overlay do template"
+                    className="absolute z-30 cursor-pointer select-none"
+                    onClick={(e) => { e.stopPropagation(); setSelectedLayer("overlay"); }}
+                    style={{
+                      width: `${overlay.scale}%`, left: `${overlay.posX}%`, top: `${overlay.posY}%`,
+                      transform: "translate(-50%, -50%)", opacity: overlay.opacity / 100,
+                    }}
+                  />
                 )}
               </div>
             </div>
