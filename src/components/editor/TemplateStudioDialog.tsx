@@ -405,6 +405,71 @@ function HeadlinePropertiesPanel({
   );
 }
 
+
+// ── Generic range row ──────────────────────────────────────────────────────────
+function RangeRow({ label, value, min, max, step = 1, suffix = "%", onChange }: {
+  label: string; value: number; min: number; max: number; step?: number; suffix?: string;
+  onChange: (v: number) => void;
+}) {
+  return (
+    <div>
+      <div className="flex justify-between mb-1 text-muted-foreground">
+        <span>{label}</span>
+        <span className="font-mono text-zinc-300">{value}{suffix}</span>
+      </div>
+      <input type="range" min={min} max={max} step={step} value={value}
+        onChange={(e) => onChange(Number(e.target.value))} className="w-full" />
+    </div>
+  );
+}
+
+function MediaFramingControls({ zoom, posX, posY, onChange }: {
+  zoom: number; posX: number; posY: number;
+  onChange: (p: { zoom?: number; posX?: number; posY?: number }) => void;
+}) {
+  return (
+    <div className="space-y-3">
+      <div className="text-[10px] uppercase font-semibold text-muted-foreground">Enquadramento do vídeo</div>
+      <RangeRow label="Zoom" value={zoom} min={50} max={300} onChange={(v) => onChange({ zoom: v })} />
+      <RangeRow label="Posição horizontal" value={posX} min={0} max={100} onChange={(v) => onChange({ posX: v })} />
+      <RangeRow label="Posição vertical" value={posY} min={0} max={100} onChange={(v) => onChange({ posY: v })} />
+    </div>
+  );
+}
+
+// ── Video 1 Properties Panel ───────────────────────────────────────────────────
+function Video1PropertiesPanel({ borders, onChange, splitMode }: {
+  borders: BorderSettings;
+  onChange: React.Dispatch<React.SetStateAction<BorderSettings>>;
+  splitMode: boolean;
+}) {
+  const set = (patch: Partial<BorderSettings>) => onChange((prev) => ({ ...prev, ...patch }));
+  return (
+    <div className="rounded-xl border border-zinc-800 bg-zinc-900/60 p-4 space-y-4 text-xs">
+      <div className="flex items-center gap-2 text-sm font-semibold text-foreground">
+        <Film className="h-4 w-4 text-primary" /> Vídeo 1 (principal)
+      </div>
+      <MediaFramingControls zoom={borders.zoom} posX={borders.posX} posY={borders.posY} onChange={set} />
+      <div className="space-y-3">
+        <div className="text-[10px] uppercase font-semibold text-muted-foreground">Esticar</div>
+        <RangeRow label="Largura" value={borders.stretchX} min={50} max={200} onChange={(v) => set({ stretchX: v })} />
+        <RangeRow label="Altura" value={borders.stretchY} min={50} max={200} onChange={(v) => set({ stretchY: v })} />
+      </div>
+      {splitMode ? (
+        <p className="text-[10px] text-muted-foreground">No modo 2 vídeos, a área do Vídeo 1 é definida pela divisão da tela.</p>
+      ) : (
+        <div className="space-y-3">
+          <div className="text-[10px] uppercase font-semibold text-muted-foreground">Área do vídeo (bordas)</div>
+          <RangeRow label="Borda superior" value={borders.borderTop} min={0} max={45} onChange={(v) => set({ borderTop: v })} />
+          <RangeRow label="Borda inferior" value={borders.borderBottom} min={0} max={45} onChange={(v) => set({ borderBottom: v })} />
+          <RangeRow label="Borda esquerda" value={borders.borderLeft} min={0} max={45} onChange={(v) => set({ borderLeft: v })} />
+          <RangeRow label="Borda direita" value={borders.borderRight} min={0} max={45} onChange={(v) => set({ borderRight: v })} />
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ── Video 2 Properties Panel ───────────────────────────────────────────────────
 function Video2PropertiesPanel({
   secondMedia,
@@ -495,6 +560,8 @@ function Video2PropertiesPanel({
         />
       </div>
 
+      <MediaFramingControls zoom={secondMedia.zoom} posX={secondMedia.posX} posY={secondMedia.posY} onChange={set} />
+
       {/* Volume */}
       <div>
         <div className="flex justify-between mb-1 text-muted-foreground">
@@ -561,7 +628,7 @@ export function TemplateStudioDialog({ open, onClose, templateToEdit, onSaved }:
   const [layers, setLayers] = useState<LayerItem[]>([
     { id: "headline", name: "Headline 1",                     type: "headline", visible: true },
     { id: "video2",   name: "Vídeo 2 (gameplay / satisfying)", type: "video2",   visible: true },
-    { id: "video1",   name: "Vídeo principal (em cima)",       type: "video1",   visible: true },
+    { id: "video1",   name: "Vídeo 1 (principal)",       type: "video1",   visible: true },
   ]);
 
   // ── Accordions ───────────────────────────────────────────────────────────────
@@ -617,7 +684,7 @@ export function TemplateStudioDialog({ open, onClose, templateToEdit, onSaved }:
     setLayers([
       { id: "headline", name: "Headline 1",                     type: "headline", visible: true },
       { id: "video2",   name: "Vídeo 2 (gameplay / satisfying)", type: "video2",   visible: true },
-      { id: "video1",   name: "Vídeo principal (em cima)",       type: "video1",   visible: true },
+      { id: "video1",   name: "Vídeo 1 (principal)",       type: "video1",   visible: true },
     ]);
   }, [templateToEdit, open]);
 
@@ -815,6 +882,17 @@ export function TemplateStudioDialog({ open, onClose, templateToEdit, onSaved }:
     </div>
   ) : null;
 
+  const v1Style: React.CSSProperties = {
+    objectPosition: `${borders.posX}% ${borders.posY}%`,
+    transform: `scale(${(borders.zoom / 100) * (borders.stretchX / 100)}, ${(borders.zoom / 100) * (borders.stretchY / 100)})`,
+    transformOrigin: `${borders.posX}% ${borders.posY}%`,
+  };
+  const v2Style: React.CSSProperties = {
+    objectPosition: `${secondMedia.posX}% ${secondMedia.posY}%`,
+    transform: `scale(${secondMedia.zoom / 100})`,
+    transformOrigin: `${secondMedia.posX}% ${secondMedia.posY}%`,
+  };
+
   const previewAspect =
     aspect === "9:16" ? "9/16" : aspect === "1:1" ? "1/1" : aspect === "4:5" ? "4/5" : "16/9";
 
@@ -879,14 +957,7 @@ export function TemplateStudioDialog({ open, onClose, templateToEdit, onSaved }:
                 )}
 
                 {selectedLayer === "video1" && (
-                  <div className="rounded-xl border border-zinc-800 bg-zinc-900/60 p-4 text-xs space-y-2">
-                    <p className="font-semibold text-foreground flex items-center gap-2">
-                      <Film className="h-4 w-4 text-primary" /> Vídeo principal
-                    </p>
-                    <p className="text-muted-foreground">
-                      O vídeo principal ocupa a parte superior do layout. Ajuste zoom e posição pelo editor principal (Bordas).
-                    </p>
-                  </div>
+                  <Video1PropertiesPanel borders={borders} onChange={setBorders} splitMode={secondMedia.enabled && !!video2Layer?.visible} />
                 )}
               </>
             ) : (
@@ -1207,7 +1278,8 @@ export function TemplateStudioDialog({ open, onClose, templateToEdit, onSaved }:
                       {video1Layer?.visible && currentItem ? (
                         <video
                           src={currentItem.previewUrl}
-                          className="h-full w-full object-cover"
+                          className="h-full w-full object-cover pointer-events-none"
+                          style={v1Style}
                           muted
                           playsInline
                         />
@@ -1247,6 +1319,7 @@ export function TemplateStudioDialog({ open, onClose, templateToEdit, onSaved }:
                           <video
                             src={secondMedia.src}
                             className="h-full w-full object-cover pointer-events-none"
+                            style={v2Style}
                             muted loop autoPlay playsInline
                           />
                         ) : (
@@ -1254,6 +1327,7 @@ export function TemplateStudioDialog({ open, onClose, templateToEdit, onSaved }:
                             src={secondMedia.src}
                             alt="Mídia 2"
                             className="h-full w-full object-cover pointer-events-none"
+                            style={v2Style}
                           />
                         )
                       ) : (
@@ -1291,7 +1365,8 @@ export function TemplateStudioDialog({ open, onClose, templateToEdit, onSaved }:
                   /* SINGLE VIDEO MODE */
                   <div className="relative w-full h-full">
                     <div
-                      className="absolute overflow-hidden bg-zinc-900"
+                      className="absolute overflow-hidden bg-zinc-900 cursor-pointer"
+                      onClick={(e) => { e.stopPropagation(); setSelectedLayer("video1"); }}
                       style={{
                         top:    `${borders.borderTop}%`,
                         bottom: `${borders.borderBottom}%`,
@@ -1302,7 +1377,8 @@ export function TemplateStudioDialog({ open, onClose, templateToEdit, onSaved }:
                       {currentItem ? (
                         <video
                           src={currentItem.previewUrl}
-                          className="h-full w-full object-cover"
+                          className="h-full w-full object-cover pointer-events-none"
+                          style={v1Style}
                           muted
                           playsInline
                         />
