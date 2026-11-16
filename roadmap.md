@@ -13,3 +13,4 @@
 - [x] Permit only the approved live-preview origin alongside production, validate exact allowlist without OAuth, and document the test callback without deployment.
 - [x] Add the exact id-preview origin to META_ALLOWED_ORIGINS in place (no deletion), keeping production and the previous preview origin, without OAuth, deployment or code changes.
 - [x] Move overlay and mask controls into Template Studio Layers and verify with an uploaded video.
+- [x] Remove Inferior beside Template and move saved settings before processing; verify saving with an uploaded video on desktop and mobile.

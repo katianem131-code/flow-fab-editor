@@ -1,14 +1,8 @@
-import { useState } from "react";
 import { useEditor } from "@/lib/editor/store";
 import { BordersTab } from "./BordersTab";
-import { LowerTab } from "./TextTabs";
-import { PresetsBar } from "./PresetsBar";
-import { RotateCw, Lock } from "lucide-react";
-
-type Tab = "bordas" | "inferior";
+import { RotateCw } from "lucide-react";
 
 export function EditPanel() {
-  const [tab, setTab] = useState<Tab>("bordas");
   const items = useEditor((s) => s.items);
   const selectedId = useEditor((s) => s.selectedId);
   const editMode = useEditor((s) => s.editMode);
@@ -18,8 +12,6 @@ export function EditPanel() {
 
   return (
     <div className="flex flex-col lg:h-full lg:overflow-hidden">
-      <PresetsBar />
-
       <div className="border-b border-border p-3">
         <button
           onClick={resetAll}
@@ -30,9 +22,8 @@ export function EditPanel() {
       </div>
 
 
-      <div className="grid grid-cols-2 gap-1 border-b border-border p-2">
-        <TabBtn active={tab === "bordas"} onClick={() => setTab("bordas")}>Template</TabBtn>
-        <TabBtn active={tab === "inferior"} onClick={() => setTab("inferior")}>Inferior</TabBtn>
+      <div className="border-b border-border p-2">
+        <h2 className="rounded-md bg-surface-2 px-2 py-1.5 text-center text-xs font-medium text-foreground">Template</h2>
       </div>
 
       <div className="border-b border-border p-3">
@@ -67,37 +58,9 @@ export function EditPanel() {
       </div>
 
       <div className="lg:flex-1 lg:overflow-y-auto">
-        {tab === "bordas" && <BordersTab />}
-        {tab === "inferior" && <LowerTab />}
+        <BordersTab />
       </div>
     </div>
   );
 }
 
-function TabBtn({
-  active,
-  locked,
-  onClick,
-  children,
-}: {
-  active: boolean;
-  locked?: boolean;
-  onClick: () => void;
-  children: React.ReactNode;
-}) {
-  return (
-    <button
-      onClick={onClick}
-      className={`relative rounded-md px-2 py-1.5 text-xs font-medium transition ${
-        active
-          ? "bg-surface-2 text-foreground"
-          : "text-muted-foreground hover:text-foreground"
-      }`}
-    >
-      {children}
-      {locked && (
-        <Lock className="absolute right-1 top-1 h-2.5 w-2.5 text-muted-foreground" />
-      )}
-    </button>
-  );
-}

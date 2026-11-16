@@ -3,6 +3,7 @@ import { Play, Package, Loader2 } from "lucide-react";
 import { useEditor, effectiveBorders, titleTextForItem } from "@/lib/editor/store";
 import { toast } from "sonner";
 import { ScheduleDialog } from "./ScheduleDialog";
+import { PresetsBar } from "./PresetsBar";
 import { downloadBlob, zipBlobs } from "@/lib/editor/zip";
 
 export function ProcessBar() {
@@ -109,7 +110,9 @@ export function ProcessBar() {
   };
 
   return (
-    <div className="border-t border-border bg-surface/60 p-3 backdrop-blur">
+    <div className="border-t border-border bg-surface/60 backdrop-blur">
+      <PresetsBar />
+      <div className="p-3">
       {running && (
         <div className="mb-2">
           <div className="mb-1 flex items-center justify-between text-[11px] text-muted-foreground">
@@ -152,6 +155,7 @@ export function ProcessBar() {
           </button>
         )}
         <ScheduleDialog />
+      </div>
       </div>
     </div>
   );
