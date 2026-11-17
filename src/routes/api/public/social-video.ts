@@ -121,8 +121,8 @@ async function handle(request: Request): Promise<Response> {
   return new Response(output, {
     headers: {
       "Content-Type": "application/zip",
-      "Content-Disposition": `attachment; filename="${baseName}.zip"`,
-      "X-Filename": `${baseName}.zip`,
+      "Content-Disposition": `attachment; filename="${platform}-post.zip"`,
+      "X-Filename": `${platform}-post.zip`,
       "Cache-Control": "no-store",
     },
   });

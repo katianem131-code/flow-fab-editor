@@ -40,7 +40,7 @@ import {
   type BatchDestination,
   type BatchRecord,
 } from "@/lib/editor/batches";
-import { saveBatchFiles, loadBatchFiles, deleteBatchFiles } from "@/lib/editor/batchStorage";
+import { saveBatchFiles, replaceBatchFiles, loadBatchFiles, deleteBatchFiles } from "@/lib/editor/batchStorage";
 import type { ImportedPost } from "@/lib/editor/linkImport";
 import { assetMetadata, formatSlideLabel, type BatchAssetInput, type MediaSource } from "@/lib/editor/media";
 import { BatchDownloadControls, DownloadAssetButton } from "./BatchDownloadControls";
@@ -167,6 +167,10 @@ export function BatchEntry() {
 
   const total = items.length + images.length;
   const currentLabel = buildBatchLabel(now ?? new Date(0), name);
+  const displayOrder = new Map(orderedAssets([
+    ...items.map((item) => ({ id: item.id, file: item.file, kind: "video" as const, source: item.source })),
+    ...images.map((image) => ({ id: image.id, file: image.file, kind: "image" as const, source: image.source })),
+  ]).map((asset, index) => [asset.id, index]));
 
   // Marcar / desmarcar item
   const toggleMark = (id: string) => {
@@ -238,7 +242,7 @@ export function BatchEntry() {
     const updated = saveBatch(rec);
     setHistory(updated);
     setBatch(batchId, currentLabel);
-    void saveBatchFiles(batchId, orderedAssets([
+    void replaceBatchFiles(batchId, orderedAssets([
       ...items.map((item) => ({ id: item.id, file: item.file, kind: "video" as const, source: item.source })),
       ...images.map((img) => ({ id: img.id, file: img.file, kind: "image" as const, source: img.source })),
     ]));
@@ -380,7 +384,7 @@ export function BatchEntry() {
     setBatch(batchId, currentLabel);
 
     // Salva vídeos, imagens e metadados para restaurar o lote mais tarde.
-    if (markedAssets.length > 0) void saveBatchFiles(batchId, markedAssets);
+    if (markedAssets.length > 0) void replaceBatchFiles(batchId, markedAssets);
 
     if (dest === "editor") {
       // Deixar no editor somente os vídeos marcados
@@ -540,6 +544,7 @@ export function BatchEntry() {
               return (
                 <div
                   key={it.id}
+                  style={{ order: displayOrder.get(it.id) }}
                   onClick={() => toggleMark(it.id)}
                   className={`group relative flex cursor-pointer items-center gap-3 rounded-lg border p-3 transition ${
                     isMarked
@@ -598,6 +603,7 @@ export function BatchEntry() {
               return (
                 <div
                   key={img.id}
+                  style={{ order: displayOrder.get(img.id) }}
                   onClick={() => toggleMark(img.id)}
                   className={`group relative flex cursor-pointer items-center gap-3 rounded-lg border p-3 transition ${
                     isMarked

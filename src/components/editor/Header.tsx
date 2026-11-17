@@ -18,10 +18,10 @@ export function Header() {
             </span>
           </div>
         </Link>
-        <nav className="flex items-center gap-2 text-sm">
+        <nav className="flex min-w-0 items-center gap-1 text-sm sm:gap-2">
           <Link
             to="/descobrir"
-            className="rounded-md border border-border px-3 py-1.5 text-xs font-medium text-muted-foreground hover:text-foreground"
+            className="hidden rounded-md border border-border px-3 py-1.5 text-xs font-medium text-muted-foreground hover:text-foreground sm:block"
           >
             Virais
           </Link>
@@ -33,13 +33,13 @@ export function Header() {
           </Link>
           <Link
             to="/admin"
-            className="rounded-md border border-border px-3 py-1.5 text-xs font-medium text-muted-foreground hover:text-foreground"
+            className="hidden rounded-md border border-border px-3 py-1.5 text-xs font-medium text-muted-foreground hover:text-foreground sm:block"
           >
             Admin
           </Link>
           <Link
             to="/"
-            className="rounded-md bg-primary px-3 py-1.5 text-xs font-semibold text-primary-foreground hover:opacity-90"
+            className="whitespace-nowrap rounded-md bg-primary px-2 py-1.5 text-xs font-semibold text-primary-foreground hover:opacity-90 sm:px-3"
           >
             Novo lote
           </Link>

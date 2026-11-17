@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import {
   Sparkles,
@@ -20,6 +20,7 @@ import { loadBatchFiles } from "@/lib/editor/batchStorage";
 import { formatSlideLabel, sharedCaption, type BatchAssetInput, type BatchAssetMetadata } from "@/lib/editor/media";
 import { BatchDownloadControls, DownloadAssetButton } from "@/components/editor/BatchDownloadControls";
 import { BatchScheduleDialog } from "@/components/editor/BatchScheduleDialog";
+import { useMediaPreviews } from "@/lib/editor/useMediaPreviews";
 
 export const Route = createFileRoute("/analise")({
   head: () => ({
@@ -80,11 +81,7 @@ function AnalysisPage() {
     return () => { cancelled = true; };
   }, []);
 
-  const previews = useMemo(
-    () => items.filter((item) => item.file).map((item) => ({ id: item.id, url: URL.createObjectURL(item.file!) })),
-    [items],
-  );
-  useEffect(() => () => previews.forEach((preview) => URL.revokeObjectURL(preview.url)), [previews]);
+  const previews = useMediaPreviews(items.flatMap((item) => item.file ? [{ id: item.id, file: item.file, kind: item.type }] : []));
 
   const downloadableAssets = items.flatMap((item): BatchAssetInput[] => item.file
     ? [{ id: item.id, file: item.file, kind: item.type, source: item.source }]
@@ -210,7 +207,7 @@ function AnalysisPage() {
           </div>
         </div>
       </section>
-      <BatchScheduleDialog assets={downloadableAssets} open={scheduleOpen} onOpenChange={setScheduleOpen} />
+      <BatchScheduleDialog assets={downloadableAssets} open={scheduleOpen} onOpenChange={setScheduleOpen} initialCaption={caption} />
     </div>
   );
 }

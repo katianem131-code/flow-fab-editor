@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { CalendarClock, Zap, Plus, Sparkles } from "lucide-react";
 import { toast } from "sonner";
 import {
@@ -11,6 +11,7 @@ import {
 import { cloudUploadPostAssets, cloudUploadPostVideo } from "@/lib/cloud/sync";
 import { supabase } from "@/integrations/supabase/client";
 import type { BatchAssetInput } from "@/lib/editor/media";
+import { useMediaPreviews } from "@/lib/editor/useMediaPreviews";
 
 const field =
   "mt-1 w-full rounded-md border border-border bg-background px-2 py-1.5 text-xs focus:border-primary focus:outline-none";
@@ -65,11 +66,7 @@ export function ScheduleForm({
         : ["reels", "feed", "stories"]
     : ["reels", "feed", "stories"];
 
-  const previews = useMemo(
-    () => (mediaAssets ?? []).map((asset) => ({ id: asset.id, kind: asset.kind, url: URL.createObjectURL(asset.file) })),
-    [mediaAssets],
-  );
-  useEffect(() => () => previews.forEach((preview) => URL.revokeObjectURL(preview.url)), [previews]);
+  const previews = useMediaPreviews(mediaAssets ?? []);
 
   const toggle = (a: string) =>
     setSelected((s) => (s.includes(a) ? s.filter((x) => x !== a) : [...s, a]));

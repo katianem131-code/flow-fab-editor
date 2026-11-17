@@ -2,6 +2,7 @@ import { zipSync, strToU8 } from "fflate";
 
 export async function zipBlobs(
   entries: { name: string; blob: Blob }[],
+  note = "Processado com LabRemix — Remix inteligente. Resultado original.\n",
 ): Promise<Blob> {
   const files: Record<string, Uint8Array> = {};
   const used = new Set<string>();
@@ -15,7 +16,7 @@ export async function zipBlobs(
     const buf = new Uint8Array(await e.blob.arrayBuffer());
     files[name] = buf;
   }
-  files["_LabRemix.txt"] = strToU8("Processado com LabRemix — Remix inteligente. Resultado original.\n");
+  files["_LabRemix.txt"] = strToU8(note);
   const zipped = zipSync(files, { level: 0 });
   const out = new Uint8Array(zipped.byteLength);
   out.set(zipped);

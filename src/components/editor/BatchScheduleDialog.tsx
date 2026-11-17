@@ -1,4 +1,4 @@
-import { useEffect, useMemo } from "react";
+import { useMediaPreviews } from "@/lib/editor/useMediaPreviews";
 import { CalendarClock, Film, Image as ImageIcon, Layers3 } from "lucide-react";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import type { BatchAssetInput } from "@/lib/editor/media";
@@ -9,18 +9,16 @@ export function BatchScheduleDialog({
   assets,
   open,
   onOpenChange,
+  initialCaption,
 }: {
   assets: BatchAssetInput[];
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  initialCaption?: string;
 }) {
   const images = assets.filter((asset) => asset.kind === "image").length;
   const videos = assets.length - images;
-  const previews = useMemo(
-    () => assets.map((asset) => ({ id: asset.id, url: URL.createObjectURL(asset.file) })),
-    [assets],
-  );
-  useEffect(() => () => previews.forEach((preview) => URL.revokeObjectURL(preview.url)), [previews]);
+  const previews = useMediaPreviews(assets);
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-h-[90vh] max-w-lg overflow-y-auto max-sm:inset-x-0 max-sm:bottom-0 max-sm:top-auto max-sm:left-0 max-sm:translate-x-0 max-sm:translate-y-0 max-sm:max-h-[92dvh] max-sm:rounded-t-2xl max-sm:border-x-0 max-sm:border-b-0 max-sm:p-4">
@@ -52,7 +50,7 @@ export function BatchScheduleDialog({
           videoName={assets[0]?.file.name ?? "post"}
           headline={assets[0]?.file.name ?? "Novo post"}
           mediaAssets={assets}
-          initialCaption={sharedCaption(assets)}
+          initialCaption={initialCaption ?? sharedCaption(assets)}
           onDone={() => onOpenChange(false)}
         />
       </DialogContent>

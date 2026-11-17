@@ -69,6 +69,12 @@ export async function saveBatchFiles(batchId: string, assets: BatchAssetInput[])
   }
 }
 
+/** Substitui o conteúdo local quando o lote salvo representa apenas os itens marcados. */
+export async function replaceBatchFiles(batchId: string, assets: BatchAssetInput[]): Promise<void> {
+  await deleteBatchFiles(batchId);
+  await saveBatchFiles(batchId, assets);
+}
+
 /** Carrega os arquivos reais e metadados de um lote armazenados no IndexedDB. */
 export async function loadBatchFiles(batchId: string): Promise<BatchAssetInput[]> {
   const local = await loadLocalBatchFiles(batchId);

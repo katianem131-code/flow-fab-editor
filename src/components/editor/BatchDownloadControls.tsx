@@ -31,7 +31,7 @@ export function BatchDownloadControls({ assets, batchName }: { assets: BatchAsse
           source: asset.source,
         })), null, 2)], { type: "application/json" }),
       });
-      setReady(await zipBlobs(entries));
+      setReady(await zipBlobs(entries, "Conteúdo original importado com LabRemix. A ordem e as legendas de referência estão nos arquivos de metadados.\n"));
     } catch {
       toast.error("Não foi possível preparar o pacote de download.");
     } finally {
