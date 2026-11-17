@@ -412,6 +412,39 @@ export function BatchEntry() {
     }
   };
 
+  const openCarouselEditor = async () => {
+    if (!markedImages.length) return;
+    const batchId = activeBatchId ?? crypto.randomUUID();
+    const existing = history.find((batch) => batch.id === batchId);
+    const rec: BatchRecord = {
+      id: batchId,
+      name: currentLabel,
+      createdAt: existing?.createdAt ?? new Date().toISOString(),
+      videoCount: markedVideos.length,
+      imageCount: markedImages.length,
+      linkCount: existing?.linkCount ?? 0,
+      fileNames: markedAssets.map((asset) => asset.file.name),
+      media: markedAssets.map(assetMetadata),
+      destination: "ai",
+    };
+    setHistory(saveBatch(rec));
+    setBatch(batchId, currentLabel);
+    await replaceBatchFiles(batchId, markedAssets);
+    sessionStorage.setItem("labremix:analise:batch", JSON.stringify({
+      batchId,
+      batchName: currentLabel,
+      items: rec.media,
+    }));
+    sessionStorage.setItem("labremix:carrossel:open", JSON.stringify({
+      projectId: `carrossel-${crypto.randomUUID()}`,
+      batchId,
+      batchName: currentLabel,
+      assetIds: markedImages.map((image) => image.id),
+      caption: markedImages.length ? markedAssets.find((asset) => asset.source?.caption)?.source?.caption : undefined,
+    }));
+    navigate({ to: "/carrossel" });
+  };
+
   return (
     <div className="mx-auto w-full max-w-5xl px-6 py-10">
       {/* Passo 1: Traga seu material */}
@@ -677,7 +710,7 @@ export function BatchEntry() {
             </div>
           )}
 
-          <div className="mt-4 grid gap-4 md:grid-cols-3">
+          <div className="mt-4 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
             <DestCard
               icon={<Scissors className="h-6 w-6" />}
               title="Editar"
@@ -701,6 +734,15 @@ export function BatchEntry() {
               onClick={() => go("ai")}
               disabled={markedCount === 0}
               hint={markedCount === 0 ? "Marque ao menos 1 item acima para enviar à IA" : undefined}
+            />
+            <DestCard
+              icon={<Layers3 className="h-6 w-6" />}
+              title="Editar carrossel"
+              desc="Troque fotos, reescreva frases e organize os slides."
+              badge={`${markedImages.length} imagem(ns) marcada(s)`}
+              onClick={openCarouselEditor}
+              disabled={markedImages.length === 0}
+              hint={markedImages.length === 0 ? "Marque ao menos 1 imagem para editar o carrossel" : undefined}
             />
             <DestCard
               icon={<CalendarClock className="h-6 w-6" />}
@@ -1074,11 +1116,17 @@ function DestCard({
 }
 
 function orderedAssets(assets: BatchAssetInput[]): BatchAssetInput[] {
-  return [...assets].sort((a, b) => {
-    const postA = a.source?.postId ?? a.id;
-    const postB = b.source?.postId ?? b.id;
-    return postA.localeCompare(postB) || (a.source?.slideIndex ?? 1) - (b.source?.slideIndex ?? 1);
-  });
+  return assets
+    .map((asset, index) => ({ asset, index }))
+    .sort((a, b) => {
+      const postA = a.asset.source?.postId;
+      const postB = b.asset.source?.postId;
+      if (postA && postA === postB) {
+        return (a.asset.source?.slideIndex ?? 1) - (b.asset.source?.slideIndex ?? 1) || a.index - b.index;
+      }
+      return a.index - b.index;
+    })
+    .map(({ asset }) => asset);
 }
 
 function formatBatchDate(iso: string) {

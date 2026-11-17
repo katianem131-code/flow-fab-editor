@@ -9,6 +9,8 @@ const STORE_NAME = "batch_files";
 
 interface StoredFileRecord {
   id: string; // `${batchId}_${index}`
+  assetId?: string;
+  order?: number;
   batchId: string;
   name: string;
   type: string;
@@ -50,6 +52,8 @@ export async function saveBatchFiles(batchId: string, assets: BatchAssetInput[])
       const f = asset.file;
       const record: StoredFileRecord = {
         id: `${batchId}_${String(i).padStart(3, "0")}_${f.name}`,
+        assetId: asset.id,
+        order: i,
         batchId,
         name: f.name,
         type: f.type || (asset.kind === "image" ? "image/jpeg" : "video/mp4"),
@@ -98,6 +102,7 @@ async function loadLocalBatchFiles(batchId: string): Promise<BatchAssetInput[]> 
     return new Promise((resolve, reject) => {
       req.onsuccess = () => {
         const records = ((req.result as StoredFileRecord[]) || []).sort((a, b) =>
+          (a.order ?? Number.MAX_SAFE_INTEGER) - (b.order ?? Number.MAX_SAFE_INTEGER) ||
           (a.source?.postId ?? "").localeCompare(b.source?.postId ?? "") ||
           (a.source?.slideIndex ?? 0) - (b.source?.slideIndex ?? 0) ||
           a.id.localeCompare(b.id),
@@ -108,7 +113,7 @@ async function loadLocalBatchFiles(batchId: string): Promise<BatchAssetInput[]> 
             lastModified: Date.now(),
           });
           return {
-            id: r.source?.postId ? `${r.source.postId}-${r.source.slideIndex ?? index + 1}` : `${batchId}-${index}`,
+            id: r.assetId ?? (r.source?.postId ? `${r.source.postId}-${r.source.slideIndex ?? index + 1}` : `${batchId}-${index}`),
             file,
             kind: file.type.startsWith("image/") || /\.(jpe?g|png|webp|gif)$/i.test(file.name) ? "image" as const : "video" as const,
             source: r.source,

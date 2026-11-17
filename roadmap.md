@@ -18,3 +18,6 @@
 - [x] Persist mixed-media batches and provide individual/ZIP downloads.
 - [x] Show imported slides and captions in analysis and support image/carousel scheduling drafts.
 - [x] Verify mixed-media import, downloads, analysis and scheduling draft UI on desktop and mobile with a mocked carousel (live Cobalt and authenticated save not verified).
+- [x] Add a simple carousel editor with replaceable photo backgrounds and independent text/stripe layers.
+- [x] Support adding, duplicating, deleting and reordering carousel slides, with local draft recovery.
+- [x] Save rendered slides back to the batch and verify individual/ZIP downloads and scheduling drafts on desktop and mobile.

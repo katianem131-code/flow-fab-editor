@@ -14,6 +14,7 @@ import { Route as AdminRouteImport } from './routes/admin'
 import { Route as AgendaRouteImport } from './routes/agenda'
 import { Route as AnaliseRouteImport } from './routes/analise'
 import { Route as AuthRouteImport } from './routes/auth'
+import { Route as CarrosselRouteImport } from './routes/carrossel'
 import { Route as DescobrirRouteImport } from './routes/descobrir'
 import { Route as EditorRouteImport } from './routes/editor'
 import { Route as PlanosRouteImport } from './routes/planos'
@@ -46,6 +47,11 @@ const AnaliseRoute = AnaliseRouteImport.update({
 const AuthRoute = AuthRouteImport.update({
   id: '/auth',
   path: '/auth',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const CarrosselRoute = CarrosselRouteImport.update({
+  id: '/carrossel',
+  path: '/carrossel',
   getParentRoute: () => rootRouteImport,
 } as any)
 const DescobrirRoute = DescobrirRouteImport.update({
@@ -95,6 +101,7 @@ export interface FileRoutesByFullPath {
   '/agenda': typeof AgendaRoute
   '/analise': typeof AnaliseRoute
   '/auth': typeof AuthRoute
+  '/carrossel': typeof CarrosselRoute
   '/descobrir': typeof DescobrirRoute
   '/editor': typeof EditorRoute
   '/planos': typeof PlanosRoute
@@ -110,6 +117,7 @@ export interface FileRoutesByTo {
   '/agenda': typeof AgendaRoute
   '/analise': typeof AnaliseRoute
   '/auth': typeof AuthRoute
+  '/carrossel': typeof CarrosselRoute
   '/descobrir': typeof DescobrirRoute
   '/editor': typeof EditorRoute
   '/planos': typeof PlanosRoute
@@ -126,6 +134,7 @@ export interface FileRoutesById {
   '/agenda': typeof AgendaRoute
   '/analise': typeof AnaliseRoute
   '/auth': typeof AuthRoute
+  '/carrossel': typeof CarrosselRoute
   '/descobrir': typeof DescobrirRoute
   '/editor': typeof EditorRoute
   '/planos': typeof PlanosRoute
@@ -143,6 +152,7 @@ export interface FileRouteTypes {
     | '/agenda'
     | '/analise'
     | '/auth'
+    | '/carrossel'
     | '/descobrir'
     | '/editor'
     | '/planos'
@@ -158,6 +168,7 @@ export interface FileRouteTypes {
     | '/agenda'
     | '/analise'
     | '/auth'
+    | '/carrossel'
     | '/descobrir'
     | '/editor'
     | '/planos'
@@ -173,6 +184,7 @@ export interface FileRouteTypes {
     | '/agenda'
     | '/analise'
     | '/auth'
+    | '/carrossel'
     | '/descobrir'
     | '/editor'
     | '/planos'
@@ -189,6 +201,7 @@ export interface RootRouteChildren {
   AgendaRoute: typeof AgendaRoute
   AnaliseRoute: typeof AnaliseRoute
   AuthRoute: typeof AuthRoute
+  CarrosselRoute: typeof CarrosselRoute
   DescobrirRoute: typeof DescobrirRoute
   EditorRoute: typeof EditorRoute
   PlanosRoute: typeof PlanosRoute
@@ -234,6 +247,13 @@ declare module '@tanstack/react-router' {
       path: '/auth'
       fullPath: '/auth'
       preLoaderRoute: typeof AuthRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/carrossel': {
+      id: '/carrossel'
+      path: '/carrossel'
+      fullPath: '/carrossel'
+      preLoaderRoute: typeof CarrosselRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/descobrir': {
@@ -301,6 +321,7 @@ const rootRouteChildren: RootRouteChildren = {
   AgendaRoute: AgendaRoute,
   AnaliseRoute: AnaliseRoute,
   AuthRoute: AuthRoute,
+  CarrosselRoute: CarrosselRoute,
   DescobrirRoute: DescobrirRoute,
   EditorRoute: EditorRoute,
   PlanosRoute: PlanosRoute,

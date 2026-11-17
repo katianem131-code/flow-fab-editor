@@ -7,6 +7,7 @@ export interface MediaSource {
   slideIndex?: number;
   slideCount?: number;
   caption?: string;
+  carouselProjectId?: string;
 }
 
 export interface BatchAssetInput {

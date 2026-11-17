@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import {
   Sparkles,
   FolderOpen,
@@ -41,8 +41,10 @@ interface AnalyzedItem extends BatchAssetMetadata {
 }
 
 function AnalysisPage() {
+  const navigate = useNavigate();
   const storeBatchName = useEditor((s) => s.batchName);
   const [batchName, setBatchName] = useState(storeBatchName);
+  const [batchId, setBatchId] = useState("");
   const [items, setItems] = useState<AnalyzedItem[]>([]);
   const [caption, setCaption] = useState("");
   const [scheduleOpen, setScheduleOpen] = useState(false);
@@ -55,6 +57,7 @@ function AnalysisPage() {
         if (!raw) return;
         const parsed = JSON.parse(raw) as { batchId?: string; batchName?: string; items?: BatchAssetMetadata[] };
         if (parsed.batchName) setBatchName(parsed.batchName);
+        if (parsed.batchId) setBatchId(parsed.batchId);
         const metadata = Array.isArray(parsed.items) ? parsed.items : [];
         if (!cancelled) {
           setItems(metadata);
@@ -86,6 +89,27 @@ function AnalysisPage() {
   const downloadableAssets = items.flatMap((item): BatchAssetInput[] => item.file
     ? [{ id: item.id, file: item.file, kind: item.type, source: item.source }]
     : []);
+
+  const openCarousel = (item: AnalyzedItem) => {
+    if (!batchId || !item.file) {
+      toast.error("Abra o lote novamente para recuperar as imagens antes de editar.");
+      return;
+    }
+    const postId = item.source?.postId;
+    const group = items.filter((candidate) => candidate.file && candidate.type === "image" && (
+      postId ? candidate.source?.postId === postId : candidate.id === item.id
+    ));
+    const payload = {
+      projectId: item.source?.carouselProjectId ?? `carrossel-${batchId}-${postId ?? item.id}`,
+      batchId,
+      batchName,
+      assetIds: group.map((candidate) => candidate.id),
+      postId,
+      caption: sharedCaption(group) || caption,
+    };
+    sessionStorage.setItem("labremix:carrossel:open", JSON.stringify(payload));
+    navigate({ to: "/carrossel" });
+  };
 
   return (
     <div className="dark min-h-screen bg-background text-foreground">
@@ -151,13 +175,24 @@ function AnalysisPage() {
                         </span>
                       )}
                     </div>
-                    <div className="flex items-center gap-2 p-3">
-                      <div className="min-w-0 flex-1">
-                        <p className="truncate font-medium" title={item.name}>{item.name}</p>
-                        <span className="text-[10px] text-muted-foreground">{item.type === "video" ? "Vídeo" : "Imagem"} · {item.sizeMB.toFixed(1)} MB</span>
+                    <div className="p-3">
+                      <div className="flex items-center gap-2">
+                        <div className="min-w-0 flex-1">
+                          <p className="truncate font-medium" title={item.name}>{item.name}</p>
+                          <span className="text-[10px] text-muted-foreground">{item.type === "video" ? "Vídeo" : "Imagem"} · {item.sizeMB.toFixed(1)} MB</span>
+                        </div>
+                        {asset && <DownloadAssetButton asset={asset} />}
+                        <CheckCircle2 className="h-4 w-4 shrink-0 text-primary" />
                       </div>
-                      {asset && <DownloadAssetButton asset={asset} />}
-                      <CheckCircle2 className="h-4 w-4 shrink-0 text-primary" />
+                      {item.type === "image" && (
+                        <button
+                          type="button"
+                          onClick={() => openCarousel(item)}
+                          className="mt-2.5 flex w-full items-center justify-center gap-1.5 rounded-md border border-primary/50 bg-primary/5 px-2 py-1.5 text-[11px] font-semibold text-primary hover:bg-primary/10"
+                        >
+                          <Layers3 className="h-3.5 w-3.5" /> {item.source?.slideCount && item.source.slideCount > 1 ? "Editar carrossel" : "Editar imagem"}
+                        </button>
+                      )}
                     </div>
                   </li>
                 );
