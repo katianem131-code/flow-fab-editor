@@ -15,6 +15,7 @@ import {
   VideoItem,
   VideoStatus,
 } from "./types";
+import type { MediaSource } from "./media";
 
 const STORAGE_KEY = "labremix:presets:v1";
 
@@ -66,7 +67,7 @@ interface EditorState {
   engineLoading: boolean;
   engineError: string | null;
 
-  addFiles: (files: File[]) => void;
+  addFiles: (files: File[], sources?: MediaSource[]) => void;
   setItems: (items: VideoItem[]) => void;
   setBatch: (id: string | null, name: string) => void;
   removeItem: (id: string) => void;
@@ -126,10 +127,10 @@ export const useEditor = create<EditorState>((set, get) => ({
   setBatch: (id, name) => set({ batchId: id, batchName: name }),
   setItems: (items) => set({ items, selectedId: items[0]?.id ?? null }),
 
-  addFiles: (files) => {
+  addFiles: (files, sources) => {
     const existing = get().items;
     const toAdd: VideoItem[] = [];
-    for (const file of files) {
+    for (const [fileIndex, file] of files.entries()) {
       if (existing.length + toAdd.length >= 50) break;
       toAdd.push({
         id: uid(),
@@ -140,6 +141,7 @@ export const useEditor = create<EditorState>((set, get) => ({
         status: "idle",
         progress: 0,
         borders: null,
+        source: sources?.[fileIndex],
       });
     }
     set((s) => ({

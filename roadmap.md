@@ -14,3 +14,7 @@
 - [x] Add the exact id-preview origin to META_ALLOWED_ORIGINS in place (no deletion), keeping production and the previous preview origin, without OAuth, deployment or code changes.
 - [x] Move overlay and mask controls into Template Studio Layers and verify with an uploaded video.
 - [x] Remove Inferior beside Template and move saved settings before processing; verify saving with an uploaded video on desktop and mobile.
+- [ ] Import every photo/video carousel slide with source metadata and optional provider caption.
+- [ ] Persist mixed-media batches and provide individual/ZIP downloads.
+- [ ] Show imported slides and captions in analysis and support image/carousel scheduling drafts.
+- [ ] Verify mixed-media import, downloads, analysis and scheduling on desktop and mobile.

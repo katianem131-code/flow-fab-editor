@@ -31,6 +31,7 @@ type View = "list" | "week" | "month";
 type Filter = "all" | "pending" | PostStatus;
 
 const STATUS_STYLE: Record<PostStatus, string> = {
+  draft: "bg-secondary text-foreground",
   scheduled: "bg-primary/15 text-primary",
   publishing: "bg-secondary text-foreground",
   published: "bg-success/15 text-success",
@@ -111,6 +112,7 @@ function AgendaPage() {
 
   const stats: [string, number][] = [
     ["Todos", counts.all],
+    ["Rascunhos", counts.draft],
     ["Agendados", counts.scheduled],
     ["Publicando", counts.publishing],
     ["Publicados", counts.published],
@@ -128,7 +130,7 @@ function AgendaPage() {
             <h1 className="text-2xl font-bold">Sua agenda de posts</h1>
             <p className="text-xs text-muted-foreground">Veja o que vai ao ar, ajuste os horários e acompanhe suas publicações.</p>
           </div>
-          <Link to="/editor" className="inline-flex items-center gap-1 rounded-md bg-primary px-4 py-2 text-xs font-semibold text-primary-foreground hover:opacity-90">
+          <Link to="/" className="inline-flex items-center gap-1 rounded-md bg-primary px-4 py-2 text-xs font-semibold text-primary-foreground hover:opacity-90">
             <Plus className="h-3 w-3" /> Novo agendamento
           </Link>
         </div>
@@ -191,7 +193,7 @@ function AgendaPage() {
             <div className="py-10 text-center">
               <CalendarCheck className="mx-auto mb-2 h-5 w-5 text-muted-foreground" />
               <p className="text-sm font-semibold">Nenhum post neste filtro</p>
-              <p className="text-xs text-muted-foreground">Processe vídeos no editor e clique em Agendar.</p>
+              <p className="text-xs text-muted-foreground">Selecione vídeos, fotos ou carrosséis em um lote e clique em Agendar.</p>
             </div>
           ) : view === "list" ? (
             <div className="space-y-2">{filtered.map((p) => <PostRow key={p.id} p={p} />)}</div>
@@ -200,7 +202,7 @@ function AgendaPage() {
           )}
         </section>
         <p className="text-center text-[11px] text-muted-foreground">
-          Publicação no Instagram depende da conexão válida e da configuração do agendador.
+          Vídeos dependem de conexão válida e agendador. Rascunhos de imagem/carrossel não são publicados automaticamente.
         </p>
       </main>
     </div>

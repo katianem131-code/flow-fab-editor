@@ -1,6 +1,7 @@
 // Local registry of import batches ("lotes"). Only metadata is stored; the
 // media files themselves live in memory for the current session.
 import { cloudSaveBatch, cloudRenameBatch, cloudRemoveBatch, cloudFetchBatches } from "@/lib/cloud/sync";
+import type { BatchAssetMetadata } from "./media";
 
 export type BatchDestination = "editor" | "ai";
 
@@ -12,6 +13,7 @@ export interface BatchRecord {
   imageCount: number;
   linkCount: number;
   fileNames: string[];
+  media?: BatchAssetMetadata[];
   destination?: BatchDestination;
 }
 

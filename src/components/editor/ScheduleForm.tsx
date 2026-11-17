@@ -1,12 +1,19 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { CalendarClock, Zap, Plus, Sparkles } from "lucide-react";
 import { toast } from "sonner";
-import { useSchedule, FORMAT_LABEL, type PostFormat } from "@/lib/editor/schedule";
-import { cloudUploadPostVideo } from "@/lib/cloud/sync";
+import {
+  useSchedule,
+  FORMAT_LABEL,
+  defaultFormatForMedia,
+  statusForFormat,
+  type PostFormat,
+} from "@/lib/editor/schedule";
+import { cloudUploadPostAssets, cloudUploadPostVideo } from "@/lib/cloud/sync";
 import { supabase } from "@/integrations/supabase/client";
+import type { BatchAssetInput } from "@/lib/editor/media";
 
 const field =
-  "w-full rounded-md border border-border bg-background px-2 py-1.5 text-xs focus:border-primary focus:outline-none";
+  "mt-1 w-full rounded-md border border-border bg-background px-2 py-1.5 text-xs focus:border-primary focus:outline-none";
 
 function defaultDateTime() {
   const d = new Date(Date.now() + 60 * 60 * 1000);
@@ -21,11 +28,15 @@ export function ScheduleForm({
   videoName,
   headline,
   previewUrl,
+  mediaAssets,
+  initialCaption = "",
   onDone,
 }: {
   videoName: string;
   headline: string;
   previewUrl?: string;
+  mediaAssets?: BatchAssetInput[];
+  initialCaption?: string;
   onDone: () => void;
 }) {
   const { accounts, addAccount, addPost, hydrate } = useSchedule();
@@ -33,19 +44,32 @@ export function ScheduleForm({
   const init = defaultDateTime();
   const [selected, setSelected] = useState<string[]>([]);
   const [newAcc, setNewAcc] = useState("");
-  const [format, setFormat] = useState<PostFormat>("reels");
+  const initialFormat = mediaAssets?.length ? defaultFormatForMedia(mediaAssets.map((asset) => asset.kind)) : "reels";
+  const [format, setFormat] = useState<PostFormat>(initialFormat);
   const [date, setDate] = useState(init.date);
   const [time, setTime] = useState(init.time);
-  const [caption, setCaption] = useState("");
+  const [caption, setCaption] = useState(initialCaption);
   const [cover, setCover] = useState(1);
   const [busy, setBusy] = useState(false);
-  const [igAccounts, setIgAccounts] = useState<{id: string; username: string | null}[]>([]);
+  const [igAccounts, setIgAccounts] = useState<{ id: string; username: string | null }[]>([]);
   useEffect(() => {
-    supabase.from("instagram_accounts").select("id,username").then(({ data }) =>
-      setIgAccounts(data ?? []),
-    );
+    supabase.from("instagram_accounts").select("id,username").then(({ data }) => setIgAccounts(data ?? []));
   }, []);
   const allAccounts = [...new Set([...igAccounts.map((a) => `@${a.username}`), ...accounts])];
+  const isDraft = format === "image" || format === "carousel";
+  const formats: PostFormat[] = mediaAssets?.length
+    ? mediaAssets.length > 1
+      ? ["carousel"]
+      : mediaAssets[0].kind === "image"
+        ? ["image"]
+        : ["reels", "feed", "stories"]
+    : ["reels", "feed", "stories"];
+
+  const previews = useMemo(
+    () => (mediaAssets ?? []).map((asset) => ({ id: asset.id, kind: asset.kind, url: URL.createObjectURL(asset.file) })),
+    [mediaAssets],
+  );
+  useEffect(() => () => previews.forEach((preview) => URL.revokeObjectURL(preview.url)), [previews]);
 
   const toggle = (a: string) =>
     setSelected((s) => (s.includes(a) ? s.filter((x) => x !== a) : [...s, a]));
@@ -57,11 +81,22 @@ export function ScheduleForm({
     const publishAt = now ? new Date() : new Date(`${date}T${time}`);
     if (!now && publishAt < new Date()) return toast.error("Escolha um horário futuro.");
     setBusy(true);
-    const videoPath = previewUrl ? await cloudUploadPostVideo(previewUrl, videoName) : null;
+    let videoPath: string | null = null;
+    let mediaPaths: string[] | undefined;
+    if (mediaAssets?.length) {
+      mediaPaths = (await cloudUploadPostAssets(mediaAssets)) ?? undefined;
+      if (mediaAssets.length === 1 && mediaAssets[0].kind === "video") videoPath = mediaPaths?.[0] ?? null;
+    } else {
+      videoPath = previewUrl ? await cloudUploadPostVideo(previewUrl, videoName) : null;
+    }
     setBusy(false);
-    if (!videoPath) return toast.error("Entre na sua conta e aguarde o envio do vídeo para agendar.");
+    if (!videoPath && !mediaPaths?.length) {
+      return toast.error("Entre na sua conta e aguarde o envio da mídia para salvar na agenda.");
+    }
     addPost({
       videoPath: videoPath ?? undefined,
+      mediaPaths,
+      mediaTypes: mediaAssets?.map((asset) => asset.kind),
       videoName,
       headline,
       caption,
@@ -70,9 +105,15 @@ export function ScheduleForm({
       format,
       publishAt: publishAt.toISOString(),
       coverSecond: cover,
-      status: now ? "publishing" : "scheduled",
+      status: statusForFormat(format, now),
     });
-    toast.success(now ? "Enviado para publicação." : "Post agendado!");
+    toast.success(
+      isDraft
+        ? "Rascunho salvo na agenda. A publicação automática deste formato ainda não está habilitada."
+        : now
+          ? "Enviado para publicação."
+          : "Post agendado!",
+    );
     onDone();
   };
 
@@ -119,11 +160,14 @@ export function ScheduleForm({
       <label className="block text-[11px] text-muted-foreground">
         Formato
         <select className={field} value={format} onChange={(e) => setFormat(e.target.value as PostFormat)}>
-          {(Object.keys(FORMAT_LABEL) as PostFormat[]).map((f) => (
-            <option key={f} value={f}>{FORMAT_LABEL[f]}</option>
-          ))}
+          {formats.map((f) => <option key={f} value={f}>{FORMAT_LABEL[f]}</option>)}
         </select>
       </label>
+      {isDraft && (
+        <p className="rounded-md border border-primary/30 bg-primary/5 p-2 text-[11px] text-muted-foreground">
+          Este rascunho guarda data, legenda, contas e slides para você modelar a publicação. Ele não será enviado automaticamente ao Instagram.
+        </p>
+      )}
       <div className="grid grid-cols-1 gap-2 min-[380px]:grid-cols-2">
         <label className="block text-[11px] text-muted-foreground">
           Dia
@@ -137,11 +181,11 @@ export function ScheduleForm({
       <label className="block text-[11px] text-muted-foreground">
         Legenda
         <textarea
-          rows={3}
+          rows={4}
           className={field}
           value={caption}
           onChange={(e) => setCaption(e.target.value)}
-          placeholder="Escreva a legenda do post"
+          placeholder="Escreva ou modele a legenda do post"
         />
       </label>
       <button
@@ -151,44 +195,49 @@ export function ScheduleForm({
       >
         <Sparkles className="h-3 w-3" /> Sugerir legenda a partir do título
       </button>
-      <div className="flex items-end gap-2">
-        <label className="block flex-1 text-[11px] text-muted-foreground">
-          Capa do Reel (segundo)
-          <input
-            type="number"
-            min={0}
-            step={0.5}
-            className={field}
-            value={cover}
-            onChange={(e) => setCover(Number(e.target.value))}
-          />
-        </label>
-        {previewUrl && (
-          <video
-            src={`${previewUrl}#t=${cover}`}
-            muted
-            className="h-14 w-8 rounded border border-border object-cover"
-          />
-        )}
-      </div>
+      {!isDraft && (
+        <div className="flex items-end gap-2">
+          <label className="block flex-1 text-[11px] text-muted-foreground">
+            Capa do Reel (segundo)
+            <input type="number" min={0} step={0.5} className={field} value={cover} onChange={(e) => setCover(Number(e.target.value))} />
+          </label>
+          {previewUrl && <video src={`${previewUrl}#t=${cover}`} muted className="h-14 w-8 rounded border border-border object-cover" />}
+        </div>
+      )}
+      {previews.length > 0 && (
+        <div className="flex gap-1 overflow-x-auto pb-1">
+          {previews.map((preview, index) => (
+            <div key={preview.id} className="relative h-16 w-16 shrink-0 overflow-hidden rounded border border-border bg-background">
+              {preview.kind === "image" ? (
+                <img src={preview.url} alt={`Slide ${index + 1}`} className="h-full w-full object-cover" />
+              ) : (
+                <video src={preview.url} muted className="h-full w-full object-cover" />
+              )}
+              <span className="absolute bottom-0.5 right-0.5 rounded bg-background/90 px-1 text-[9px]">{index + 1}</span>
+            </div>
+          ))}
+        </div>
+      )}
       <div className="flex flex-wrap gap-2">
         <button
           type="button"
-          disabled={busy} onClick={() => submit(false)}
-          className="inline-flex items-center gap-1 rounded-md bg-success px-3 py-1.5 text-xs font-semibold text-success-foreground hover:opacity-90"
+          disabled={busy}
+          onClick={() => submit(false)}
+          className="inline-flex items-center gap-1 rounded-md bg-success px-3 py-1.5 text-xs font-semibold text-success-foreground hover:opacity-90 disabled:opacity-60"
         >
-          <CalendarClock className="h-3 w-3" /> Confirmar
+          <CalendarClock className="h-3 w-3" /> {busy ? "Enviando mídia…" : isDraft ? "Salvar rascunho na agenda" : "Confirmar"}
         </button>
-        <button
-          type="button"
-          disabled={busy} onClick={() => submit(true)}
-          className="inline-flex items-center gap-1 rounded-md border border-primary px-3 py-1.5 text-xs font-semibold text-primary"
-        >
-          <Zap className="h-3 w-3" /> Publicar agora
-        </button>
-        <button type="button" onClick={onDone} className="px-2 text-xs text-muted-foreground">
-          Cancelar
-        </button>
+        {!isDraft && (
+          <button
+            type="button"
+            disabled={busy}
+            onClick={() => submit(true)}
+            className="inline-flex items-center gap-1 rounded-md border border-primary px-3 py-1.5 text-xs font-semibold text-primary disabled:opacity-60"
+          >
+            <Zap className="h-3 w-3" /> Publicar agora
+          </button>
+        )}
+        <button type="button" onClick={onDone} className="px-2 text-xs text-muted-foreground">Cancelar</button>
       </div>
     </div>
   );

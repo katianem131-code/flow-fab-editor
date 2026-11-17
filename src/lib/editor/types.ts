@@ -1,3 +1,5 @@
+import type { MediaSource } from "./media";
+
 export type AspectRatio = "9:16" | "1:1" | "4:5" | "16:9";
 
 export interface SecondMediaSettings {
@@ -142,6 +144,8 @@ export interface VideoItem {
   borders: BorderSettings | null;
   /** Per-video title text override — replaces the cycled line for this video only. */
   titleOverride?: string;
+  /** Original social post and carousel position, when imported by link. */
+  source?: MediaSource;
 }
 
 export const ASPECT_DIMS: Record<AspectRatio, { w: number; h: number }> = {

@@ -1,8 +1,9 @@
 import { create } from "zustand";
 import { cloudUpsertPost, cloudDeletePost, cloudFetchPosts } from "@/lib/cloud/sync";
+import type { MediaKind } from "./media";
 
-export type PostStatus = "scheduled" | "publishing" | "published" | "error";
-export type PostFormat = "reels" | "feed" | "stories";
+export type PostStatus = "draft" | "scheduled" | "publishing" | "published" | "error";
+export type PostFormat = "reels" | "feed" | "stories" | "image" | "carousel";
 
 export interface ScheduledPost {
   id: string;
@@ -17,9 +18,12 @@ export interface ScheduledPost {
   status: PostStatus;
   createdAt: string;
   videoPath?: string; // caminho do vídeo processado na nuvem
+  mediaPaths?: string[];
+  mediaTypes?: MediaKind[];
 }
 
 export const STATUS_LABEL: Record<PostStatus, string> = {
+  draft: "Rascunho",
   scheduled: "Agendado",
   publishing: "Publicando",
   published: "Publicado",
@@ -30,7 +34,19 @@ export const FORMAT_LABEL: Record<PostFormat, string> = {
   reels: "Padrão da conta (só Reels)",
   feed: "Reels + Feed",
   stories: "Stories",
+  image: "Imagem única (rascunho)",
+  carousel: "Carrossel (rascunho)",
 };
+
+export function defaultFormatForMedia(kinds: MediaKind[]): PostFormat {
+  return kinds.length > 1 ? "carousel" : kinds[0] === "image" ? "image" : "reels";
+}
+
+/** Image/carousel entries are organizational drafts until automatic delivery exists. */
+export function statusForFormat(format: PostFormat, publishNow: boolean): PostStatus {
+  if (format === "image" || format === "carousel") return "draft";
+  return publishNow ? "publishing" : "scheduled";
+}
 
 const KEY = "labremix.schedule.v1";
 const ACC_KEY = "labremix.schedule.accounts.v1";
@@ -99,7 +115,7 @@ export const useSchedule = create<ScheduleState>((set, get) => ({
 }));
 
 export function countByStatus(posts: ScheduledPost[]) {
-  const c = { all: posts.length, scheduled: 0, publishing: 0, published: 0, error: 0 };
+  const c = { all: posts.length, draft: 0, scheduled: 0, publishing: 0, published: 0, error: 0 };
   for (const p of posts) c[p.status]++;
   return c;
 }

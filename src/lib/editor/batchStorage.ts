@@ -1,4 +1,5 @@
 import { cloudUploadBatchFiles, cloudLoadBatchFiles } from "@/lib/cloud/sync";
+import type { BatchAssetInput, MediaSource } from "./media";
 // Persistência local de mídias de lotes (arquivos File/Blob) usando IndexedDB
 // Permite que ao clicar em um projeto/lote recente, os vídeos sejam restaurados mesmo após recarregar a página.
 
@@ -13,6 +14,7 @@ interface StoredFileRecord {
   type: string;
   blob: Blob;
   size: number;
+  source?: MediaSource;
 }
 
 function openDB(): Promise<IDBDatabase> {
@@ -33,25 +35,27 @@ function openDB(): Promise<IDBDatabase> {
   });
 }
 
-/** Salva todos os arquivos de um lote no IndexedDB */
-export async function saveBatchFiles(batchId: string, files: File[]): Promise<void> {
-  if (!files || files.length === 0) return;
-  void cloudUploadBatchFiles(batchId, files);
+/** Salva vídeos, imagens e a ordem/origem dos slides de um lote no IndexedDB. */
+export async function saveBatchFiles(batchId: string, assets: BatchAssetInput[]): Promise<void> {
+  if (!assets || assets.length === 0) return;
+  void cloudUploadBatchFiles(batchId, assets.map((asset) => asset.file));
   try {
     const db = await openDB();
     const tx = db.transaction(STORE_NAME, "readwrite");
     const store = tx.objectStore(STORE_NAME);
 
-    // Salva cada arquivo
-    for (let i = 0; i < files.length; i++) {
-      const f = files[i];
+    // Salva cada arquivo com sua posição no carrossel e legenda de origem.
+    for (let i = 0; i < assets.length; i++) {
+      const asset = assets[i];
+      const f = asset.file;
       const record: StoredFileRecord = {
-        id: `${batchId}_${i}_${f.name}`,
+        id: `${batchId}_${String(i).padStart(3, "0")}_${f.name}`,
         batchId,
         name: f.name,
-        type: f.type || "video/mp4",
+        type: f.type || (asset.kind === "image" ? "image/jpeg" : "video/mp4"),
         blob: f,
         size: f.size,
+        source: asset.source,
       };
       store.put(record);
     }
@@ -65,14 +69,19 @@ export async function saveBatchFiles(batchId: string, files: File[]): Promise<vo
   }
 }
 
-/** Carrega os arquivos reais de um lote armazenados no IndexedDB */
-export async function loadBatchFiles(batchId: string): Promise<File[]> {
+/** Carrega os arquivos reais e metadados de um lote armazenados no IndexedDB. */
+export async function loadBatchFiles(batchId: string): Promise<BatchAssetInput[]> {
   const local = await loadLocalBatchFiles(batchId);
   if (local.length > 0) return local;
-  return cloudLoadBatchFiles(batchId).catch(() => []);
+  const remote = await cloudLoadBatchFiles(batchId).catch(() => []);
+  return remote.map((file, index) => ({
+    id: `${batchId}-cloud-${index}`,
+    file,
+    kind: file.type.startsWith("image/") || /\.(jpe?g|png|webp|gif)$/i.test(file.name) ? "image" : "video",
+  }));
 }
 
-async function loadLocalBatchFiles(batchId: string): Promise<File[]> {
+async function loadLocalBatchFiles(batchId: string): Promise<BatchAssetInput[]> {
   try {
     const db = await openDB();
     const tx = db.transaction(STORE_NAME, "readonly");
@@ -82,14 +91,24 @@ async function loadLocalBatchFiles(batchId: string): Promise<File[]> {
 
     return new Promise((resolve, reject) => {
       req.onsuccess = () => {
-        const records = (req.result as StoredFileRecord[]) || [];
-        const files = records.map((r) => {
-          return new File([r.blob], r.name, {
+        const records = ((req.result as StoredFileRecord[]) || []).sort((a, b) =>
+          (a.source?.postId ?? "").localeCompare(b.source?.postId ?? "") ||
+          (a.source?.slideIndex ?? 0) - (b.source?.slideIndex ?? 0) ||
+          a.id.localeCompare(b.id),
+        );
+        const assets = records.map((r, index) => {
+          const file = new File([r.blob], r.name, {
             type: r.type || "video/mp4",
             lastModified: Date.now(),
           });
+          return {
+            id: r.source?.postId ? `${r.source.postId}-${r.source.slideIndex ?? index + 1}` : `${batchId}-${index}`,
+            file,
+            kind: file.type.startsWith("image/") || /\.(jpe?g|png|webp|gif)$/i.test(file.name) ? "image" as const : "video" as const,
+            source: r.source,
+          };
         });
-        resolve(files);
+        resolve(assets);
       };
       req.onerror = () => reject(req.error);
     });

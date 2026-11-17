@@ -3,6 +3,7 @@
 import { supabase } from "@/integrations/supabase/client";
 import type { BatchRecord } from "@/lib/editor/batches";
 import type { ScheduledPost, PostStatus } from "@/lib/editor/schedule";
+import type { Json } from "@/integrations/supabase/types";
 
 export const VIDEO_BUCKET = "videos";
 
@@ -33,6 +34,7 @@ export async function cloudSaveBatch(rec: BatchRecord) {
       imageCount: rec.imageCount,
       linkCount: rec.linkCount,
       fileNames: rec.fileNames,
+      media: (rec.media ?? []) as unknown as Json,
       destination: rec.destination ?? null,
     },
   });
@@ -74,12 +76,13 @@ export async function cloudFetchBatches(): Promise<BatchRecord[] | null> {
       imageCount: Number(d.imageCount ?? 0),
       linkCount: Number(d.linkCount ?? 0),
       fileNames: Array.isArray(d.fileNames) ? (d.fileNames as string[]) : [],
+      media: Array.isArray(d.media) ? (d.media as BatchRecord["media"]) : [],
       destination: b.target === "analise" ? "ai" : (d.destination as BatchRecord["destination"]) ?? undefined,
     };
   });
 }
 
-/** Envia os vídeos do lote para o Storage e registra cada um na tabela videos. */
+/** Envia vídeos e imagens do lote para o Storage e registra cada arquivo. */
 export async function cloudUploadBatchFiles(batchId: string, files: File[]) {
   const uid = await currentUserId();
   if (!uid || !files.length) return;
@@ -132,8 +135,26 @@ export async function cloudLoadBatchFiles(batchId: string): Promise<File[]> {
 }
 
 const toDbStatus = (s: PostStatus) => (s === "error" ? "failed" : s);
-const fromDbStatus = (s: string): PostStatus =>
-  s === "failed" ? "error" : s === "draft" ? "scheduled" : (s as PostStatus);
+const fromDbStatus = (s: string): PostStatus => (s === "failed" ? "error" : (s as PostStatus));
+
+/** Uploads the original image/video files used by a scheduled draft. */
+export async function cloudUploadPostAssets(assets: { file: File; kind: "video" | "image" }[]): Promise<string[] | null> {
+  const uid = await currentUserId();
+  if (!uid) return null;
+  const paths: string[] = [];
+  for (const asset of assets) {
+    const path = `${uid}/posts/${crypto.randomUUID()}-${safeName(asset.file.name || `media.${asset.kind === "image" ? "jpg" : "mp4"}`)}`;
+    const { error } = await supabase.storage.from(VIDEO_BUCKET).upload(path, asset.file, {
+      contentType: asset.file.type || (asset.kind === "image" ? "image/jpeg" : "video/mp4"),
+    });
+    if (error) {
+      if (paths.length) await supabase.storage.from(VIDEO_BUCKET).remove(paths);
+      return warn("upload post media", error), null;
+    }
+    paths.push(path);
+  }
+  return paths;
+}
 
 export async function cloudUpsertPost(p: ScheduledPost) {
   const uid = await currentUserId();
@@ -148,7 +169,16 @@ export async function cloudUpsertPost(p: ScheduledPost) {
     caption: p.caption,
     status: toDbStatus(p.status),
     created_at: p.createdAt,
-    details: { videoName: p.videoName, headline: p.headline, accounts: p.accounts, accountIds: p.accountIds ?? [], coverSecond: p.coverSecond, videoPath: p.videoPath },
+    details: {
+      videoName: p.videoName,
+      headline: p.headline,
+      accounts: p.accounts,
+      accountIds: p.accountIds ?? [],
+      coverSecond: p.coverSecond,
+      videoPath: p.videoPath,
+      mediaPaths: p.mediaPaths ?? [],
+      mediaTypes: p.mediaTypes ?? [],
+    },
   });
   warn("save post", error);
 }
@@ -178,6 +208,8 @@ export async function cloudFetchPosts(): Promise<ScheduledPost[] | null> {
       status: fromDbStatus(r.status),
       createdAt: r.created_at,
       videoPath: typeof d.videoPath === "string" ? d.videoPath : undefined,
+      mediaPaths: Array.isArray(d.mediaPaths) ? (d.mediaPaths as string[]) : undefined,
+      mediaTypes: Array.isArray(d.mediaTypes) ? (d.mediaTypes as ScheduledPost["mediaTypes"]) : undefined,
     };
   });
 }

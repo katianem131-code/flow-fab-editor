@@ -18,6 +18,8 @@ import {
   AlertCircle,
   Loader2,
   X,
+  CalendarClock,
+  Layers3,
 } from "lucide-react";
 import { useEditor } from "@/lib/editor/store";
 import { LinkImportDialog } from "./LinkImportDialog";
@@ -39,6 +41,10 @@ import {
   type BatchRecord,
 } from "@/lib/editor/batches";
 import { saveBatchFiles, loadBatchFiles, deleteBatchFiles } from "@/lib/editor/batchStorage";
+import type { ImportedPost } from "@/lib/editor/linkImport";
+import { assetMetadata, formatSlideLabel, type BatchAssetInput, type MediaSource } from "@/lib/editor/media";
+import { BatchDownloadControls, DownloadAssetButton } from "./BatchDownloadControls";
+import { BatchScheduleDialog } from "./BatchScheduleDialog";
 
 const ACCEPT = "video/mp4,video/quicktime,video/webm,.mp4,.mov,.webm,image/*";
 
@@ -48,6 +54,7 @@ interface ImageEntry {
   name: string;
   sizeMB: number;
   previewUrl: string;
+  source?: MediaSource;
 }
 
 export function BatchEntry() {
@@ -68,6 +75,7 @@ export function BatchEntry() {
   const [history, setHistory] = useState<BatchRecord[]>([]);
   const [now, setNow] = useState<Date | null>(null);
   const [savedNotice, setSavedNotice] = useState(false);
+  const [scheduleOpen, setScheduleOpen] = useState(false);
 
   // Seleção e marcação de conteúdo (checkboxes)
   const [markedIds, setMarkedIds] = useState<Set<string>>(new Set());
@@ -114,7 +122,7 @@ export function BatchEntry() {
     if (vids.length) {
       addFiles(vids);
       if (activeBatchId) {
-        saveBatchFiles(activeBatchId, vids);
+        void saveBatchFiles(activeBatchId, vids.map((file, index) => ({ id: `video-${Date.now()}-${index}`, file, kind: "video" })));
       }
     }
 
@@ -127,6 +135,33 @@ export function BatchEntry() {
         previewUrl: URL.createObjectURL(file),
       }));
       setImages((prev) => [...prev, ...newImgEntries]);
+      if (activeBatchId) {
+        void saveBatchFiles(activeBatchId, newImgEntries.map((img) => ({ id: img.id, file: img.file, kind: "image" })));
+      }
+    }
+  };
+
+  const handleImportedPosts = (posts: ImportedPost[]) => {
+    const imported = posts.flatMap((post) => post.files);
+    const videoItems = imported.filter((item) => item.kind === "video");
+    const imageItems = imported.filter((item) => item.kind === "image");
+    if (videoItems.length) addFiles(videoItems.map((item) => item.file), videoItems.map((item) => item.source));
+    const newImages = imageItems.map((item, index): ImageEntry => ({
+      id: `${item.source.postId ?? "post"}-${item.source.slideIndex ?? index + 1}`,
+      file: item.file,
+      name: item.file.name,
+      sizeMB: item.file.size / (1024 * 1024),
+      previewUrl: URL.createObjectURL(item.file),
+      source: item.source,
+    }));
+    if (newImages.length) setImages((prev) => [...prev, ...newImages]);
+    if (activeBatchId) {
+      void saveBatchFiles(activeBatchId, imported.map((item, index) => ({
+        id: `${item.source.postId ?? "post"}-${item.source.slideIndex ?? index + 1}`,
+        file: item.file,
+        kind: item.kind,
+        source: item.source,
+      })));
     }
   };
 
@@ -193,12 +228,20 @@ export function BatchEntry() {
       imageCount: images.length,
       linkCount: existing?.linkCount ?? 0,
       fileNames: [...items.map((i) => i.file.name), ...images.map((f) => f.name)],
+      media: orderedAssets(
+        [...items.map((item) => ({ id: item.id, file: item.file, kind: "video" as const, source: item.source })),
+        ...images.map((img) => ({ id: img.id, file: img.file, kind: "image" as const, source: img.source }))]
+      ).map(assetMetadata),
       destination: existing?.destination,
     };
 
     const updated = saveBatch(rec);
     setHistory(updated);
     setBatch(batchId, currentLabel);
+    void saveBatchFiles(batchId, orderedAssets([
+      ...items.map((item) => ({ id: item.id, file: item.file, kind: "video" as const, source: item.source })),
+      ...images.map((img) => ({ id: img.id, file: img.file, kind: "image" as const, source: img.source })),
+    ]));
     setSavedNotice(true);
     setTimeout(() => setSavedNotice(false), 3000);
   };
@@ -257,15 +300,16 @@ export function BatchEntry() {
 
       // 2. Tenta carregar os arquivos reais salvos no IndexedDB:
       setLoadingProject(true);
-      const loadedFiles = await loadBatchFiles(selectedProject.id);
+      const loadedAssets = await loadBatchFiles(selectedProject.id);
       setLoadingProject(false);
+      const loadedVideos = loadedAssets.filter((asset) => asset.kind === "video");
 
-      if (loadedFiles.length > 0) {
+      if (loadedVideos.length > 0) {
         setBatch(selectedProject.id, selectedProject.name);
         saveBatch({ ...selectedProject, destination: dest });
         setActiveBatchId(selectedProject.id);
         setItems([]);
-        addFiles(loadedFiles);
+        addFiles(loadedVideos.map((asset) => asset.file), loadedVideos.map((asset) => asset.source ?? {}));
         setSelectedProject(null);
         navigate({ to: "/editor" });
         return;
@@ -287,7 +331,8 @@ export function BatchEntry() {
         JSON.stringify({
           batchId: selectedProject.id,
           batchName: selectedProject.name,
-          items: (selectedProject.fileNames || []).map((name) => ({
+          items: selectedProject.media?.length ? selectedProject.media : (selectedProject.fileNames || []).map((name, index) => ({
+            id: `${selectedProject.id}-${index}`,
             name,
             type: /\.(mp4|mov|webm)$/i.test(name) ? "video" : "image",
             sizeMB: 0,
@@ -310,6 +355,10 @@ export function BatchEntry() {
   const markedVideos = useMemo(() => items.filter((it) => markedIds.has(it.id)), [items, markedIds]);
   const markedImages = useMemo(() => images.filter((img) => markedIds.has(img.id)), [images, markedIds]);
   const markedCount = markedVideos.length + markedImages.length;
+  const markedAssets = useMemo(() => orderedAssets([
+    ...markedVideos.map((item) => ({ id: item.id, file: item.file, kind: "video" as const, source: item.source })),
+    ...markedImages.map((img) => ({ id: img.id, file: img.file, kind: "image" as const, source: img.source })),
+  ]), [markedVideos, markedImages]);
 
   // Ação da Opção 3 (O que deseja fazer?)
   const go = (dest: BatchDestination) => {
@@ -323,16 +372,15 @@ export function BatchEntry() {
       videoCount: markedVideos.length,
       imageCount: markedImages.length,
       linkCount: 0,
-      fileNames: [...markedVideos.map((i) => i.name), ...markedImages.map((f) => f.name)],
+      fileNames: markedAssets.map((asset) => asset.file.name),
+      media: markedAssets.map(assetMetadata),
       destination: dest,
     };
     setHistory(saveBatch(rec));
     setBatch(batchId, currentLabel);
 
-    // Salva arquivos reais no IndexedDB para restaurar caso o lote seja reaberto mais tarde
-    if (markedVideos.length > 0) {
-      saveBatchFiles(batchId, markedVideos.map((v) => v.file));
-    }
+    // Salva vídeos, imagens e metadados para restaurar o lote mais tarde.
+    if (markedAssets.length > 0) void saveBatchFiles(batchId, markedAssets);
 
     if (dest === "editor") {
       // Deixar no editor somente os vídeos marcados
@@ -352,10 +400,7 @@ export function BatchEntry() {
           JSON.stringify({
             batchId,
             batchName: currentLabel,
-            items: [
-              ...markedVideos.map((v) => ({ name: v.name, type: "video", sizeMB: v.sizeMB })),
-              ...markedImages.map((img) => ({ name: img.name, type: "image", sizeMB: img.sizeMB })),
-            ],
+            items: markedAssets.map(assetMetadata),
           }),
         );
       }
@@ -524,21 +569,25 @@ export function BatchEntry() {
                     </p>
                     <div className="flex items-center gap-2 text-[10px] text-muted-foreground">
                       <span className="rounded bg-blue-500/10 px-1.5 py-0.2 text-blue-400 font-semibold">Vídeo</span>
+                      {formatSlideLabel(it.source) && <span className="inline-flex items-center gap-0.5 text-primary"><Layers3 className="h-3 w-3" />{formatSlideLabel(it.source)}</span>}
                       <span>{it.sizeMB.toFixed(1)} MB</span>
                     </div>
                   </div>
 
-                  <button
-                    type="button"
-                    aria-label="Remover vídeo"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      removeItem(it.id);
-                    }}
-                    className="p-1 text-muted-foreground hover:text-destructive transition"
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </button>
+                  <div className="flex items-center">
+                    <DownloadAssetButton asset={{ id: it.id, file: it.file, kind: "video", source: it.source }} />
+                    <button
+                      type="button"
+                      aria-label="Remover vídeo"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        removeItem(it.id);
+                      }}
+                      className="p-1 text-muted-foreground hover:text-destructive transition"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </button>
+                  </div>
                 </div>
               );
             })}
@@ -580,21 +629,25 @@ export function BatchEntry() {
                       <span className="rounded bg-emerald-500/10 px-1.5 py-0.2 text-emerald-400 font-semibold">
                         Imagem
                       </span>
+                      {formatSlideLabel(img.source) && <span className="inline-flex items-center gap-0.5 text-primary"><Layers3 className="h-3 w-3" />{formatSlideLabel(img.source)}</span>}
                       <span>{img.sizeMB.toFixed(1)} MB</span>
                     </div>
                   </div>
 
-                  <button
-                    type="button"
-                    aria-label="Remover imagem"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      removeImage(img.id);
-                    }}
-                    className="p-1 text-muted-foreground hover:text-destructive transition"
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </button>
+                  <div className="flex items-center">
+                    <DownloadAssetButton asset={{ id: img.id, file: img.file, kind: "image", source: img.source }} />
+                    <button
+                      type="button"
+                      aria-label="Remover imagem"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        removeImage(img.id);
+                      }}
+                      className="p-1 text-muted-foreground hover:text-destructive transition"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </button>
+                  </div>
                 </div>
               );
             })}
@@ -618,7 +671,7 @@ export function BatchEntry() {
             </div>
           )}
 
-          <div className="mt-4 grid gap-4 md:grid-cols-2">
+          <div className="mt-4 grid gap-4 md:grid-cols-3">
             <DestCard
               icon={<Scissors className="h-6 w-6" />}
               title="Editar"
@@ -643,6 +696,22 @@ export function BatchEntry() {
               disabled={markedCount === 0}
               hint={markedCount === 0 ? "Marque ao menos 1 item acima para enviar à IA" : undefined}
             />
+            <DestCard
+              icon={<CalendarClock className="h-6 w-6" />}
+              title="Agendar"
+              desc="Organize data, legenda, contas e a sequência dos slides."
+              badge={`${markedCount} item(ns) marcado(s)`}
+              onClick={() => setScheduleOpen(true)}
+              disabled={markedCount === 0}
+              hint={markedCount === 0 ? "Marque ao menos 1 item acima para agendar" : "Imagens e carrosséis serão salvos como rascunho"}
+            />
+          </div>
+          <div className="mt-4 flex flex-wrap items-center justify-between gap-3 rounded-lg border border-border bg-background p-3">
+            <div>
+              <p className="text-xs font-semibold">Downloads do conteúdo selecionado</p>
+              <p className="text-[11px] text-muted-foreground">Baixe itens individuais acima ou prepare um ZIP com mídias, legendas e ordem dos slides.</p>
+            </div>
+            <BatchDownloadControls assets={markedAssets} batchName={currentLabel} />
           </div>
         </div>
       )}
@@ -940,7 +1009,8 @@ export function BatchEntry() {
         </DialogContent>
       </Dialog>
 
-      <LinkImportDialog open={linkOpen} onClose={() => setLinkOpen(false)} />
+      <LinkImportDialog open={linkOpen} onClose={() => setLinkOpen(false)} onImported={handleImportedPosts} />
+      <BatchScheduleDialog assets={markedAssets} open={scheduleOpen} onOpenChange={setScheduleOpen} />
     </div>
   );
 }
@@ -995,6 +1065,14 @@ function DestCard({
       {hint && <span className="text-xs text-destructive">{hint}</span>}
     </button>
   );
+}
+
+function orderedAssets(assets: BatchAssetInput[]): BatchAssetInput[] {
+  return [...assets].sort((a, b) => {
+    const postA = a.source?.postId ?? a.id;
+    const postB = b.source?.postId ?? b.id;
+    return postA.localeCompare(postB) || (a.source?.slideIndex ?? 1) - (b.source?.slideIndex ?? 1);
+  });
 }
 
 function formatBatchDate(iso: string) {
