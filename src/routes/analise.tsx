@@ -21,6 +21,7 @@ import { formatSlideLabel, sharedCaption, type BatchAssetInput, type BatchAssetM
 import { BatchDownloadControls, DownloadAssetButton } from "@/components/editor/BatchDownloadControls";
 import { BatchScheduleDialog } from "@/components/editor/BatchScheduleDialog";
 import { useMediaPreviews } from "@/lib/editor/useMediaPreviews";
+import { VideoReversePanel } from "@/components/editor/VideoReversePanel";
 
 export const Route = createFileRoute("/analise")({
   head: () => ({
@@ -202,6 +203,11 @@ function AnalysisPage() {
             <p className="mt-3 text-xs text-muted-foreground">Nenhum item específico em memória. Abra um lote e envie o conteúdo para análise.</p>
           )}
         </div>
+
+        <VideoReversePanel
+          videos={items.flatMap((item) => item.file && item.type === "video" ? [{ id: item.id, name: item.name, file: item.file }] : [])}
+          context={caption}
+        />
 
         <div className="mt-6 rounded-xl border border-border bg-surface/30 p-4 sm:p-6">
           <div className="flex items-center justify-between gap-3">
