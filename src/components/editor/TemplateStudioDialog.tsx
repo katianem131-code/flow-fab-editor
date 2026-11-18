@@ -7,6 +7,7 @@ import {
 import {
   Sliders,
   Save,
+  Star,
   Plus,
   Eye,
   EyeOff,
@@ -28,7 +29,7 @@ import {
   DEFAULT_SECOND_MEDIA,
   SecondMediaSettings,
 } from "@/lib/editor/types";
-import { VideoTemplate, saveCustomTemplate } from "@/lib/editor/templates";
+import { VideoTemplate, saveCustomTemplate, setFavoriteTemplateId } from "@/lib/editor/templates";
 import { useEditor } from "@/lib/editor/store";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -843,7 +844,7 @@ export function TemplateStudioDialog({ open, onClose, templateToEdit, onSaved }:
   };
 
   // ── Save ─────────────────────────────────────────────────────────────────────
-  const handleSave = () => {
+  const handleSave = (asFavorite = false) => {
     const id = templateToEdit?.id ?? `tpl_${Math.random().toString(36).slice(2, 9)}`;
     const finalBorders: BorderSettings = {
       ...borders,
@@ -860,6 +861,7 @@ export function TemplateStudioDialog({ open, onClose, templateToEdit, onSaved }:
       sampleHeadline: shownHeadlines[0]?.text,
     };
     saveCustomTemplate(newTemplate);
+    if (asFavorite) setFavoriteTemplateId(id);
     updateGlobalBorders(finalBorders);
     const toTitle = (h: HeadlineItem) => {
       const st = h.style;
@@ -886,7 +888,7 @@ export function TemplateStudioDialog({ open, onClose, templateToEdit, onSaved }:
       updateGlobalTitle({ enabled: false, text: "" });
       setExtraTitles([]);
     }
-    toast.success(`Template "${newTemplate.name}" salvo e aplicado!`);
+    toast.success(asFavorite ? `"${newTemplate.name}" salvo como favorito — será aplicado automaticamente nos próximos lotes.` : `Template "${newTemplate.name}" salvo e aplicado!`);
     onSaved?.(newTemplate);
     onClose();
   };
@@ -985,12 +987,20 @@ export function TemplateStudioDialog({ open, onClose, templateToEdit, onSaved }:
               Clique em uma camada na prévia para selecionar e editar suas propriedades.
             </p>
           </div>
+          <div className="flex flex-wrap gap-2">
           <button
-            onClick={handleSave}
+            onClick={() => handleSave(true)}
+            className="flex items-center gap-2 rounded-lg border border-primary/50 bg-primary/10 px-3 py-2 text-xs font-semibold text-primary transition hover:bg-primary hover:text-primary-foreground cursor-pointer"
+          >
+            <Star className="h-4 w-4" /> Salvar como favorito
+          </button>
+          <button
+            onClick={() => handleSave()}
             className="flex items-center gap-2 rounded-lg bg-emerald-500 hover:bg-emerald-600 px-4 py-2 text-xs font-semibold text-zinc-950 transition shadow-sm cursor-pointer"
           >
             <Save className="h-4 w-4" /> Salvar template
           </button>
+          </div>
         </div>
 
         {/* Body: 2 columns */}

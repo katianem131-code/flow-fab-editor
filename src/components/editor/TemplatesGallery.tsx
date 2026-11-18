@@ -1,9 +1,9 @@
-import { useRef, useState } from "react";
-import { Check, ChevronLeft, ChevronRight, LayoutTemplate, Film, Pencil, Sparkles } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
+import { Check, ChevronLeft, ChevronRight, LayoutTemplate, Film, Pencil, Sparkles, Star } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useEditor, effectiveBorders } from "@/lib/editor/store";
 import { useAntiDup } from "@/lib/editor/antidup";
-import { getAllTemplates, matchesTemplate, VideoTemplate } from "@/lib/editor/templates";
+import { getAllTemplates, matchesTemplate, VideoTemplate, getFavoriteTemplateId, setFavoriteTemplateId } from "@/lib/editor/templates";
 import { ASPECT_DIMS } from "@/lib/editor/types";
 import { TemplateStudioDialog } from "./TemplateStudioDialog";
 
@@ -20,6 +20,13 @@ export function TemplatesGallery() {
   const borders = mode === "single" && item ? effectiveBorders(item, global) : global;
 
   const [studioOpen, setStudioOpen] = useState(false);
+  const [favoriteId, setFavoriteId] = useState<string | null>(null);
+  useEffect(() => setFavoriteId(getFavoriteTemplateId()), [studioOpen]);
+  const toggleFavorite = (id: string) => {
+    const next = favoriteId === id ? null : id;
+    setFavoriteTemplateId(next);
+    setFavoriteId(next);
+  };
   const [templateToEdit, setTemplateToEdit] = useState<VideoTemplate | null>(null);
 
   const templates = getAllTemplates();
@@ -144,6 +151,7 @@ export function TemplatesGallery() {
                   )}
                 </span>
                 <span className="flex min-h-8 items-center justify-center text-center text-[10px] leading-3.5 font-medium">
+                  {favoriteId === template.id && <Star className="mr-0.5 h-2.5 w-2.5 shrink-0 fill-primary text-primary" />}
                   {template.name}
                 </span>
               </Button>
@@ -159,6 +167,18 @@ export function TemplatesGallery() {
                 title={`Editar template "${template.name}" no Studio`}
               >
                 <Pencil className="h-3 w-3" />
+              </button>
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  toggleFavorite(template.id);
+                }}
+                aria-label={favoriteId === template.id ? "Remover favorito" : "Definir como favorito"}
+                title={favoriteId === template.id ? "Favorito (aplicado automaticamente). Clique para remover." : "Definir como favorito"}
+                className={`absolute left-2.5 top-10 z-10 grid h-6 w-6 place-items-center rounded-md bg-background/85 shadow transition cursor-pointer ${favoriteId === template.id ? "text-primary opacity-100" : "text-muted-foreground opacity-0 group-hover:opacity-100"}`}
+              >
+                <Star className={`h-3 w-3 ${favoriteId === template.id ? "fill-primary" : ""}`} />
               </button>
             </div>
           );

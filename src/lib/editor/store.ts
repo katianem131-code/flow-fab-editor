@@ -1,5 +1,5 @@
 import { create } from "zustand";
-import { VIDEO_TEMPLATES, getAllTemplates } from "./templates";
+import { VIDEO_TEMPLATES, getAllTemplates, getFavoriteTemplateId } from "./templates";
 import {
   BorderSettings,
   DEFAULT_BORDERS,
@@ -148,6 +148,9 @@ export const useEditor = create<EditorState>((set, get) => ({
       items: [...s.items, ...toAdd],
       selectedId: s.selectedId ?? toAdd[0]?.id ?? null,
     }));
+    // Starting a new batch: apply the user's favorite template automatically.
+    const fav = existing.length === 0 && toAdd.length > 0 ? getFavoriteTemplateId() : null;
+    if (fav && getAllTemplates().some((t) => t.id === fav)) get().applyFramingTemplate(fav);
   },
 
   removeItem: (id) =>

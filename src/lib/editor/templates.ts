@@ -78,6 +78,7 @@ export function saveCustomTemplate(tpl: VideoTemplate): VideoTemplate[] {
 
 export function deleteCustomTemplate(id: string): VideoTemplate[] {
   if (typeof window === "undefined") return [];
+  if (getFavoriteTemplateId() === id) setFavoriteTemplateId(null);
   const updated = loadCustomTemplates().filter((t) => t.id !== id);
   try {
     window.localStorage.setItem(CUSTOM_KEY, JSON.stringify(updated));
@@ -99,4 +100,24 @@ export function matchesTemplate(borders: BorderSettings, template: VideoTemplate
     if (key === "secondMedia") return true;
     return borders[key] === template.borders[key];
   });
+}
+const FAVORITE_KEY = "labremix:favorite-template:v1";
+
+export function getFavoriteTemplateId(): string | null {
+  if (typeof window === "undefined") return null;
+  try {
+    return window.localStorage.getItem(FAVORITE_KEY);
+  } catch {
+    return null;
+  }
+}
+
+export function setFavoriteTemplateId(id: string | null): void {
+  if (typeof window === "undefined") return;
+  try {
+    if (id) window.localStorage.setItem(FAVORITE_KEY, id);
+    else window.localStorage.removeItem(FAVORITE_KEY);
+  } catch {
+    /* ignore */
+  }
 }
