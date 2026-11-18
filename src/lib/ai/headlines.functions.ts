@@ -53,7 +53,7 @@ export const suggestHeadlines = createServerFn({ method: "POST" })
         },
       },
     });
-    const raw = (res as { output_text?: string }).output_text ?? "";
+    const raw = (res as { output_text?: string }).output_text || extractText(res);
     try {
       const list = (JSON.parse(raw) as { headlines: string[] }).headlines
         .map((h) => h.replace(/\s+/g, " ").trim())
@@ -65,3 +65,9 @@ export const suggestHeadlines = createServerFn({ method: "POST" })
       throw new Error("A IA não retornou headlines válidas. Tente novamente.");
     }
   });
+
+function extractText(res: unknown): string {
+  const out = (res as { output?: Array<{ content?: Array<{ type?: string; text?: string }> }> }).output ?? [];
+  for (const item of out) for (const c of item.content ?? []) if (c.type === "output_text" && c.text) return c.text;
+  return "";
+}
