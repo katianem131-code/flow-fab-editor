@@ -21,6 +21,7 @@ import {
 import { toast } from "sonner";
 import { Header } from "./Header";
 import { CarouselCanvas } from "./CarouselCanvas";
+import { SlideAiPanel } from "./SlideAiPanel";
 import { BatchScheduleDialog } from "./BatchScheduleDialog";
 import {
   CAROUSEL_OPEN_KEY,
@@ -400,6 +401,23 @@ export function CarouselEditor() {
                   : "Rascunho salvo"}
             </span>
           </div>
+
+          <SlideAiPanel
+            slide={activeSlide}
+            context={project.caption || project.batchName}
+            onReplaceBackground={(file) =>
+              updateSlide(activeSlide.id, replaceCarouselBackground(activeSlide, file))
+            }
+            onApplyText={(text, colors) => {
+              const first = activeSlide.boxes[0];
+              if (first) updateBox(activeSlide.id, first.id, { text });
+              else {
+                const box = { ...createTextBox(text), ...(colors && /^#[0-9a-f]{6}$/i.test(colors.text) ? { color: colors.text } : {}), ...(colors && /^#[0-9a-f]{6}$/i.test(colors.background) ? { backgroundColor: colors.background } : {}) };
+                updateSlide(activeSlide.id, { boxes: [...activeSlide.boxes, box] });
+                setActiveBoxId(box.id);
+              }
+            }}
+          />
 
           <section className="mt-4 rounded-xl border border-border bg-surface/30 p-3.5">
             <div className="flex items-center justify-between gap-2">
