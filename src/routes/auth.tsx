@@ -4,6 +4,7 @@ import { Scissors } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import { AFTER_LOGIN_KEY } from "@/components/auth/AuthGate";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -35,7 +36,14 @@ function AuthPage() {
   const [info, setInfo] = useState<string | null>(null);
 
   useEffect(() => {
-    if (user) navigate({ to: "/", replace: true });
+    if (!user) return;
+    let dest = "/";
+    try {
+      const saved = sessionStorage.getItem(AFTER_LOGIN_KEY);
+      sessionStorage.removeItem(AFTER_LOGIN_KEY);
+      if (saved && saved.startsWith("/") && !saved.startsWith("//") && !saved.startsWith("/auth")) dest = saved;
+    } catch { /* ignore */ }
+    navigate({ href: dest, replace: true });
   }, [user, navigate]);
 
   async function submit(e: FormEvent) {
