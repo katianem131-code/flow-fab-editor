@@ -3,6 +3,7 @@ import { AspectRatio, BorderSettings, DEFAULT_BORDERS } from "@/lib/editor/types
 import { RotateCcw } from "lucide-react";
 import { TemplatesGallery } from "./TemplatesGallery";
 import { AntiDupPanel } from "./AntiDupPanel";
+import { HeadlinesPerVideo } from "./HeadlinesPerVideo";
 
 const ASPECTS: { v: AspectRatio; label: string }[] = [
   { v: "9:16", label: "9:16" },
@@ -36,6 +37,7 @@ export function BordersTab() {
   return (
     <div className="flex flex-col gap-4 p-4">
       <TemplatesGallery />
+      <HeadlinesPerVideo />
       <AntiDupPanel />
       <p className="rounded-md border border-border bg-surface p-3 text-[11px] text-muted-foreground">
         Bordas, zoom, posição e área de cada vídeo agora são ajustados em <span className="font-medium text-foreground">Editar template</span>. Clique em uma camada (Vídeo 1 ou Vídeo 2) na prévia do template.
