@@ -110,6 +110,15 @@ export function BatchEntry() {
     });
   }, []);
 
+  useEffect(() => {
+    const check = () => {
+      if (window.location.hash === "#baixar") setLinkOpen(true);
+    };
+    check();
+    window.addEventListener("hashchange", check);
+    return () => window.removeEventListener("hashchange", check);
+  }, []);
+
   // Garante que novos arquivos adicionados comecem marcados por padrão
   useEffect(() => {
     setMarkedIds((prev) => {

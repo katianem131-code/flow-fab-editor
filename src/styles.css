@@ -113,3 +113,14 @@
     border: none;
   }
 }
+
+@media (min-width: 768px) {
+  body:has(.app-sidebar) {
+    padding-left: 15rem;
+  }
+}
+@media (max-width: 767px) {
+  body:has(.app-bottomnav) {
+    padding-bottom: calc(4rem + env(safe-area-inset-bottom));
+  }
+}
