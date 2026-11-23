@@ -2,6 +2,7 @@ import { Link, useLocation } from "@tanstack/react-router";
 import { useState } from "react";
 import {
   CalendarClock,
+  LayoutDashboard,
   Download,
   FolderKanban,
   Gem,
@@ -17,12 +18,13 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sh
 type Item = {
   label: string;
   icon: typeof Scissors;
-  to: "/" | "/descobrir" | "/agenda" | "/admin" | "/planos";
+  to: "/" | "/dashboard" | "/descobrir" | "/agenda" | "/admin" | "/planos";
   hash?: string;
   match: (path: string, hash: string) => boolean;
 };
 
 const MAIN: Item[] = [
+  { label: "Dashboard", icon: LayoutDashboard, to: "/dashboard", match: (p) => p.startsWith("/dashboard") },
   { label: "Garimpar", icon: Pickaxe, to: "/descobrir", match: (p) => p.startsWith("/descobrir") },
   { label: "Baixar", icon: Download, to: "/", hash: "baixar", match: (p, h) => p === "/" && h === "baixar" },
   {
@@ -131,7 +133,7 @@ export function Header() {
 
       {/* Mobile bottom bar */}
       {!fullScreenTool && (
-        <nav className="app-bottomnav fixed inset-x-0 bottom-0 z-30 grid grid-cols-5 border-t border-border bg-background/95 pb-[env(safe-area-inset-bottom)] backdrop-blur md:hidden">
+        <nav className="app-bottomnav fixed inset-x-0 bottom-0 z-30 grid grid-cols-6 border-t border-border bg-background/95 pb-[env(safe-area-inset-bottom)] backdrop-blur md:hidden">
           {MAIN.map((i) => {
             const Icon = i.icon;
             const active = i.match(path, hash);
