@@ -35,6 +35,7 @@ import {
   renderCarousel,
   renderCarouselSlide,
   replaceCarouselBackground,
+  startBlankCarousel,
   type CarouselOpenPayload,
   type CarouselProject,
   type CarouselSlide,
@@ -76,12 +77,12 @@ export function CarouselEditor() {
         const allAssets = await loadBatchFiles(payload.batchId);
         const selected = payload.assetIds?.length
           ? allAssets.filter(
-              (asset) => payload.assetIds?.includes(asset.id) && asset.kind === "image",
-            )
+            (asset) => payload.assetIds?.includes(asset.id) && asset.kind === "image",
+          )
           : payload.postId
             ? allAssets.filter(
-                (asset) => asset.kind === "image" && asset.source?.postId === payload.postId,
-              )
+              (asset) => asset.kind === "image" && asset.source?.postId === payload.postId,
+            )
             : [];
         if (cancelled) return;
         setOriginalAssets(selected);
@@ -139,9 +140,9 @@ export function CarouselEditor() {
       slides: current.slides.map((slide) =>
         slide.id === slideId
           ? {
-              ...slide,
-              boxes: slide.boxes.map((box) => (box.id === boxId ? { ...box, ...patch } : box)),
-            }
+            ...slide,
+            boxes: slide.boxes.map((box) => (box.id === boxId ? { ...box, ...patch } : box)),
+          }
           : slide,
       ),
     }));
@@ -295,14 +296,35 @@ export function CarouselEditor() {
           <Layers3 className="mx-auto h-10 w-10 text-primary" />
           <h1 className="mt-4 text-xl font-bold">Editor de carrossel</h1>
           <p className="mt-2 text-sm text-muted-foreground">
-            {loadError || "Nenhum slide disponível."}
+            {loadError || "Nenhum slide disponível no momento."}
           </p>
-          <button
-            onClick={() => navigate({ to: "/analise" })}
-            className="mt-6 rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground"
-          >
-            Voltar à análise
-          </button>
+          <div className="mt-6 flex flex-wrap items-center justify-center gap-3">
+            <button
+              onClick={async () => {
+                setLoading(true);
+                setLoadError("");
+                try {
+                  const { project: blankProject } = await startBlankCarousel();
+                  setProject(blankProject);
+                  setActiveIndex(0);
+                  setActiveBoxId(blankProject.slides[0]?.boxes[0]?.id ?? null);
+                } catch {
+                  setLoadError("Não foi possível iniciar um carrossel em branco.");
+                } finally {
+                  setLoading(false);
+                }
+              }}
+              className="rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground hover:opacity-90 transition"
+            >
+              Criar carrossel do zero
+            </button>
+            <button
+              onClick={() => navigate({ to: "/" })}
+              className="rounded-lg border border-border bg-background px-4 py-2 text-sm font-semibold text-foreground hover:bg-surface transition"
+            >
+              Voltar ao Início
+            </button>
+          </div>
         </div>
       </div>
     );

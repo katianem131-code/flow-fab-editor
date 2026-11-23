@@ -149,3 +149,41 @@ export async function deleteBatchFiles(batchId: string): Promise<void> {
   }
 }
 
+export interface BatchThumbnail {
+  url: string;
+  kind: "image" | "video";
+  name: string;
+}
+
+/** Carrega a miniatura do primeiro arquivo salvo de um lote no IndexedDB */
+export async function loadFirstBatchThumbnail(batchId: string): Promise<BatchThumbnail | null> {
+  try {
+    const db = await openDB();
+    const tx = db.transaction(STORE_NAME, "readonly");
+    const store = tx.objectStore(STORE_NAME);
+    const index = store.index("batchId");
+
+    return new Promise((resolve) => {
+      const req = index.openCursor(IDBKeyRange.only(batchId));
+      req.onsuccess = () => {
+        const cursor = req.result;
+        if (cursor) {
+          const rec = cursor.value as StoredFileRecord;
+          const url = URL.createObjectURL(rec.blob);
+          const kind =
+            rec.type.startsWith("image/") || /\.(jpe?g|png|webp|gif)$/i.test(rec.name)
+              ? "image"
+              : "video";
+          resolve({ url, kind, name: rec.name });
+        } else {
+          resolve(null);
+        }
+      };
+      req.onerror = () => resolve(null);
+    });
+  } catch {
+    return null;
+  }
+}
+
+

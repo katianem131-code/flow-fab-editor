@@ -1,4 +1,7 @@
-import type { BatchAssetInput, MediaSource } from "./media";
+import { assetMetadata, type BatchAssetInput, type MediaSource } from "./media";
+import { saveBatch, type BatchRecord } from "./batches";
+import { saveBatchFiles } from "./batchStorage";
+import { saveCarouselDraft } from "./carouselStorage";
 
 export type CarouselAspect = "4:5" | "1:1";
 export type CarouselTextAlign = "left" | "center" | "right";
@@ -334,4 +337,106 @@ export function mergeCarouselAssets(
   }
   if (!inserted) merged.push(...rendered);
   return merged;
+}
+
+/** Generates a starter slide background image with a stylish dark gradient. */
+export async function createBlankSlideFile(name = "slide-1.png", aspect: CarouselAspect = "4:5"): Promise<File> {
+  const { width, height } = carouselDimensions(aspect);
+  const canvas = document.createElement("canvas");
+  canvas.width = width;
+  canvas.height = height;
+  const ctx = canvas.getContext("2d");
+  if (ctx) {
+    const gradient = ctx.createLinearGradient(0, 0, width, height);
+    gradient.addColorStop(0, "#0B0F19");
+    gradient.addColorStop(1, "#1E293B");
+    ctx.fillStyle = gradient;
+    ctx.fillRect(0, 0, width, height);
+
+    // Subtle framing border
+    ctx.strokeStyle = "rgba(255, 255, 255, 0.08)";
+    ctx.lineWidth = 8;
+    ctx.strokeRect(32, 32, width - 64, height - 64);
+  }
+  const blob = await new Promise<Blob>((resolve) => {
+    canvas.toBlob((b) => resolve(b || new Blob()), "image/png");
+  });
+  return new File([blob], name, { type: "image/png", lastModified: Date.now() });
+}
+
+/** Initializes a complete blank carousel project and saves it into IndexedDB and session storage. */
+export async function startBlankCarousel(customName?: string): Promise<{
+  project: CarouselProject;
+  payload: CarouselOpenPayload;
+}> {
+  const now = new Date();
+  const pad = (n: number) => String(n).padStart(2, "0");
+  const defaultName =
+    customName ||
+    `Carrossel_${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}_${pad(now.getHours())}h${pad(now.getMinutes())}`;
+  const batchId = `carrossel-batch-${Date.now()}`;
+  const file = await createBlankSlideFile("slide-1.png", "4:5");
+  const assetId = `img-${Date.now()}-1`;
+  const assetInput: BatchAssetInput = {
+    id: assetId,
+    file,
+    kind: "image",
+    source: {
+      postUrl: "",
+      caption: "",
+      slideIndex: 1,
+    },
+  };
+  const slide = createCarouselSlide(file, assetInput.source, assetId);
+  slide.boxes = [createTextBox("Clique duas vezes para editar seu texto")];
+
+  const projectId = `carrossel-${crypto.randomUUID()}`;
+  const payload: CarouselOpenPayload = {
+    projectId,
+    batchId,
+    batchName: defaultName,
+    assetIds: [assetId],
+    caption: "",
+  };
+
+  const project: CarouselProject = {
+    id: projectId,
+    batchId,
+    batchName: defaultName,
+    sourceIds: [assetId],
+    aspect: "4:5",
+    slides: [slide],
+    caption: "",
+    updatedAt: new Date().toISOString(),
+  };
+
+  const record: BatchRecord = {
+    id: batchId,
+    name: defaultName,
+    createdAt: new Date().toISOString(),
+    videoCount: 0,
+    imageCount: 1,
+    linkCount: 0,
+    fileNames: [file.name],
+    media: [assetMetadata(assetInput)],
+    destination: "ai",
+  };
+
+  saveBatch(record);
+  await saveBatchFiles(batchId, [assetInput]);
+  await saveCarouselDraft(project);
+
+  if (typeof window !== "undefined") {
+    sessionStorage.setItem(CAROUSEL_OPEN_KEY, JSON.stringify(payload));
+    sessionStorage.setItem(
+      "labremix:analise:batch",
+      JSON.stringify({
+        batchId,
+        batchName: defaultName,
+        items: record.media,
+      }),
+    );
+  }
+
+  return { project, payload };
 }

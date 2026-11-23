@@ -7,6 +7,9 @@ import {
   Film,
   FolderOpen,
   Scissors,
+
+
+  
   Sparkles,
   Trash2,
   Clock,
@@ -20,8 +23,16 @@ import {
   X,
   CalendarClock,
   Layers3,
+  TrendingUp,
+  Search,
+  SearchX,
 } from "lucide-react";
+import { toast } from "sonner";
 import { useEditor } from "@/lib/editor/store";
+import { useSchedule, type ScheduledPost } from "@/lib/editor/schedule";
+import { startBlankCarousel } from "@/lib/editor/carousel";
+import { useBatchThumbnails } from "@/lib/editor/useBatchThumbnails";
+import { MiniDashboard } from "./MiniDashboard";
 import { LinkImportDialog } from "./LinkImportDialog";
 import {
   Dialog,
@@ -445,8 +456,264 @@ export function BatchEntry() {
     navigate({ to: "/carrossel" });
   };
 
+  const scheduledPosts = useSchedule((s) => s.posts);
+  const pendingScheduledCount = useMemo(
+    () => scheduledPosts.filter((p) => p.status === "scheduled" || p.status === "draft").length,
+    [scheduledPosts],
+  );
+  const [carouselStarting, setCarouselStarting] = useState(false);
+
+  const handleQuickCarousel = async () => {
+    // 1. Se já houver imagens marcadas, abre direto
+    if (markedImages.length > 0) {
+      await openCarouselEditor();
+      return;
+    }
+
+    // 2. Se houver imagens carregadas na tela mas desmarcadas, marca e abre
+    if (images.length > 0) {
+      setMarkedIds((prev) => {
+        const next = new Set(prev);
+        images.forEach((img) => next.add(img.id));
+        return next;
+      });
+      const batchId = activeBatchId ?? crypto.randomUUID();
+      const existing = history.find((batch) => batch.id === batchId);
+      const allAssets = orderedAssets([
+        ...markedVideos.map((item) => ({ id: item.id, file: item.file, kind: "video" as const, source: item.source })),
+        ...images.map((img) => ({ id: img.id, file: img.file, kind: "image" as const, source: img.source })),
+      ]);
+      const rec: BatchRecord = {
+        id: batchId,
+        name: currentLabel,
+        createdAt: existing?.createdAt ?? new Date().toISOString(),
+        videoCount: markedVideos.length,
+        imageCount: images.length,
+        linkCount: existing?.linkCount ?? 0,
+        fileNames: allAssets.map((asset) => asset.file.name),
+        media: allAssets.map(assetMetadata),
+        destination: "ai",
+      };
+      setHistory(saveBatch(rec));
+      setBatch(batchId, currentLabel);
+      await replaceBatchFiles(batchId, allAssets);
+      sessionStorage.setItem(
+        "labremix:analise:batch",
+        JSON.stringify({
+          batchId,
+          batchName: currentLabel,
+          items: rec.media,
+        }),
+      );
+      sessionStorage.setItem(
+        "labremix:carrossel:open",
+        JSON.stringify({
+          projectId: `carrossel-${crypto.randomUUID()}`,
+          batchId,
+          batchName: currentLabel,
+          assetIds: images.map((image) => image.id),
+          caption: images.find((img) => img.source?.caption)?.source?.caption,
+        }),
+      );
+      navigate({ to: "/carrossel" });
+      return;
+    }
+
+    // 3. Caso não haja imagens: inicia um carrossel do zero!
+    try {
+      setCarouselStarting(true);
+      await startBlankCarousel();
+      navigate({ to: "/carrossel" });
+    } catch {
+      toast.error("Não foi possível iniciar o carrossel do zero.");
+    } finally {
+      setCarouselStarting(false);
+    }
+  };
+
+  // Busca e Filtros para Lotes Recentes
+  const [historySearchQuery, setHistorySearchQuery] = useState("");
+  const [historyFilter, setHistoryFilter] = useState<"all" | "videos" | "carousels" | "scheduled">("all");
+  const batchThumbnails = useBatchThumbnails(history);
+
+  const videoBatchesCount = useMemo(() => {
+    return history.filter((b) => b.videoCount > 0 && b.imageCount === 0).length;
+  }, [history]);
+
+  const carouselBatchesCount = useMemo(() => {
+    return history.filter((b) => b.imageCount > 0 || b.name.toLowerCase().includes("carrossel")).length;
+  }, [history]);
+
+  const scheduledBatchesCount = useMemo(() => {
+    return history.filter((b) => batchHasScheduledPost(b, scheduledPosts)).length;
+  }, [history, scheduledPosts]);
+
+  const filteredHistory = useMemo(() => {
+    return history.filter((b) => {
+      if (historySearchQuery.trim()) {
+        const q = historySearchQuery.toLowerCase().trim();
+        const matchName = b.name.toLowerCase().includes(q);
+        const matchFiles = (b.fileNames || []).some((f) => f.toLowerCase().includes(q));
+        if (!matchName && !matchFiles) return false;
+      }
+      if (historyFilter === "videos") {
+        return b.videoCount > 0 && b.imageCount === 0;
+      }
+      if (historyFilter === "carousels") {
+        return b.imageCount > 0 || b.name.toLowerCase().includes("carrossel");
+      }
+      if (historyFilter === "scheduled") {
+        return batchHasScheduledPost(b, scheduledPosts);
+      }
+      return true;
+    });
+  }, [history, historySearchQuery, historyFilter, scheduledPosts]);
+
   return (
     <div className="mx-auto w-full max-w-5xl px-6 py-10">
+      {/* Mini Dashboard de Produção (Visão Geral) */}
+      <MiniDashboard history={history} />
+
+      {/* Hub de Criação / Atalhos de Acesso Rápido */}
+      <section className="mb-10">
+        <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <h2 className="flex items-center gap-2 text-lg font-bold tracking-tight sm:text-xl">
+              <Sparkles className="h-5 w-5 text-primary" />
+              Hub de Criação
+            </h2>
+            <p className="text-xs text-muted-foreground sm:text-sm">
+              Atalhos de acesso rápido para produzir, editar e planejar seu conteúdo em um clique.
+            </p>
+          </div>
+        </div>
+
+        <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
+          {/* Card 1: 🎬 Novo lote de vídeos */}
+          <button
+            type="button"
+            onClick={() => inputRef.current?.click()}
+            className="group relative flex flex-col justify-between rounded-xl border border-border bg-surface/40 p-4 text-left transition-all duration-200 hover:-translate-y-0.5 hover:border-primary/60 hover:bg-surface/80 hover:shadow-md"
+          >
+            <div>
+              <div className="flex items-center justify-between">
+                <span className="grid h-10 w-10 place-items-center rounded-lg bg-indigo-500/10 text-indigo-400 transition group-hover:scale-105 group-hover:bg-indigo-500/20">
+                  <Film className="h-5 w-5" />
+                </span>
+                <span className="text-[11px] font-medium text-muted-foreground transition group-hover:text-foreground">
+                  Upload direto
+                </span>
+              </div>
+              <h3 className="mt-3 flex items-center gap-1.5 text-sm font-semibold tracking-tight text-foreground">
+                <span>🎬</span> Novo lote de vídeos
+              </h3>
+              <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
+                Abre a caixa de upload para selecionar vídeos ou fotos do computador.
+              </p>
+            </div>
+            <div className="mt-4 flex items-center gap-1 text-[11px] font-medium text-primary">
+              <span>Selecionar arquivos</span>
+              <span className="transition-transform group-hover:translate-x-0.5">→</span>
+            </div>
+          </button>
+
+          {/* Card 2: 🖼️ Criar/Editar Carrossel */}
+          <button
+            type="button"
+            onClick={handleQuickCarousel}
+            disabled={carouselStarting}
+            className="group relative flex flex-col justify-between rounded-xl border border-border bg-surface/40 p-4 text-left transition-all duration-200 hover:-translate-y-0.5 hover:border-primary/60 hover:bg-surface/80 hover:shadow-md disabled:opacity-60"
+          >
+            <div>
+              <div className="flex items-center justify-between">
+                <span className="grid h-10 w-10 place-items-center rounded-lg bg-emerald-500/10 text-emerald-400 transition group-hover:scale-105 group-hover:bg-emerald-500/20">
+                  {carouselStarting ? (
+                    <Loader2 className="h-5 w-5 animate-spin" />
+                  ) : (
+                    <Layers3 className="h-5 w-5" />
+                  )}
+                </span>
+                <span className="text-[11px] font-medium text-muted-foreground transition group-hover:text-foreground">
+                  {markedImages.length > 0
+                    ? `${markedImages.length} selecionada(s)`
+                    : images.length > 0
+                    ? `${images.length} foto(s)`
+                    : "Do zero"}
+                </span>
+              </div>
+              <h3 className="mt-3 flex items-center gap-1.5 text-sm font-semibold tracking-tight text-foreground">
+                <span>🖼️</span> Criar/Editar Carrossel
+              </h3>
+              <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
+                Abra o editor de carrossel direto para fotos, legendas e frases editáveis.
+              </p>
+            </div>
+            <div className="mt-4 flex items-center gap-1 text-[11px] font-medium text-primary">
+              <span>
+                {markedImages.length > 0 || images.length > 0 ? "Abrir carrossel" : "Criar do zero"}
+              </span>
+              <span className="transition-transform group-hover:translate-x-0.5">→</span>
+            </div>
+          </button>
+
+          {/* Card 3: 📅 Ver Agenda de Postagens */}
+          <button
+            type="button"
+            onClick={() => navigate({ to: "/agenda" })}
+            className="group relative flex flex-col justify-between rounded-xl border border-border bg-surface/40 p-4 text-left transition-all duration-200 hover:-translate-y-0.5 hover:border-primary/60 hover:bg-surface/80 hover:shadow-md"
+          >
+            <div>
+              <div className="flex items-center justify-between">
+                <span className="grid h-10 w-10 place-items-center rounded-lg bg-amber-500/10 text-amber-400 transition group-hover:scale-105 group-hover:bg-amber-500/20">
+                  <CalendarClock className="h-5 w-5" />
+                </span>
+                <span className="rounded-full bg-surface px-2 py-0.5 text-[10px] font-semibold text-muted-foreground transition group-hover:text-foreground">
+                  {pendingScheduledCount > 0 ? `${pendingScheduledCount} agendado(s)` : "Calendário"}
+                </span>
+              </div>
+              <h3 className="mt-3 flex items-center gap-1.5 text-sm font-semibold tracking-tight text-foreground">
+                <span>📅</span> Ver Agenda de Postagens
+              </h3>
+              <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
+                Mostra os próximos posts programados, datas e rascunhos salvos.
+              </p>
+            </div>
+            <div className="mt-4 flex items-center gap-1 text-[11px] font-medium text-primary">
+              <span>Acessar agenda</span>
+              <span className="transition-transform group-hover:translate-x-0.5">→</span>
+            </div>
+          </button>
+
+          {/* Card 4: 🔍 Descobrir Virais */}
+          <button
+            type="button"
+            onClick={() => navigate({ to: "/descobrir" })}
+            className="group relative flex flex-col justify-between rounded-xl border border-border bg-surface/40 p-4 text-left transition-all duration-200 hover:-translate-y-0.5 hover:border-primary/60 hover:bg-surface/80 hover:shadow-md"
+          >
+            <div>
+              <div className="flex items-center justify-between">
+                <span className="grid h-10 w-10 place-items-center rounded-lg bg-fuchsia-500/10 text-fuchsia-400 transition group-hover:scale-105 group-hover:bg-fuchsia-500/20">
+                  <TrendingUp className="h-5 w-5" />
+                </span>
+                <span className="text-[11px] font-medium text-muted-foreground transition group-hover:text-foreground">
+                  Tendências
+                </span>
+              </div>
+              <h3 className="mt-3 flex items-center gap-1.5 text-sm font-semibold tracking-tight text-foreground">
+                <span>🔍</span> Descobrir Virais
+              </h3>
+              <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
+                Atalho para garimpar Reels em alta, benchmarks e ideias de conteúdo.
+              </p>
+            </div>
+            <div className="mt-4 flex items-center gap-1 text-[11px] font-medium text-primary">
+              <span>Pesquisar Reels</span>
+              <span className="transition-transform group-hover:translate-x-0.5">→</span>
+            </div>
+          </button>
+        </div>
+      </section>
+
       {/* Passo 1: Traga seu material */}
       <StepTitle n={1} title="Traga seu material" sub="Vídeos, imagens ou links de postagens para este lote." />
       <div
@@ -764,130 +1031,319 @@ export function BatchEntry() {
         </div>
       )}
 
-      {/* Lotes / Projetos Recentes (com seleção e renomeação direta) */}
+      {/* Lotes / Projetos Recentes (com busca, filtros rápidos e miniaturas) */}
       {history.length > 0 && (
-        <div className="mt-14">
-          <div className="mb-3 flex items-center justify-between">
-            <h3 className="text-sm font-semibold text-muted-foreground">Lotes / Projetos recentes</h3>
-            <span className="text-xs text-muted-foreground">{history.length} projeto(s) registrado(s)</span>
-          </div>
-          <ul className="divide-y divide-border rounded-lg border border-border bg-surface/20">
-            {history.map((b) => {
-              const isSelected = activeBatchId === b.id;
-              const isEditing = editingId === b.id;
+        <div id="projetos-recentes" className="mt-14 scroll-mt-20">
+          {/* Cabeçalho e Barra de Pesquisa */}
+          <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <h3 className="flex items-center gap-2 text-base font-semibold text-foreground">
+                <FolderOpen className="h-4 w-4 text-primary" /> Lotes / Projetos recentes
+              </h3>
+              <p className="text-xs text-muted-foreground">
+                {filteredHistory.length === history.length
+                  ? `${history.length} projeto(s) registrado(s)`
+                  : `Mostrando ${filteredHistory.length} de ${history.length} projeto(s)`}
+              </p>
+            </div>
 
-              return (
-                <li
-                  key={b.id}
-                  onClick={() => handleOpenProject(b)}
-                  className={`group flex flex-wrap items-center gap-3 px-4 py-3 text-sm cursor-pointer transition ${
-                    isSelected ? "bg-primary/10" : "hover:bg-surface/60"
-                  }`}
+            {/* Campo de busca por nome ou arquivos */}
+            <div className="relative w-full sm:w-72">
+              <Search className="pointer-events-none absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
+              <input
+                type="text"
+                value={historySearchQuery}
+                onChange={(e) => setHistorySearchQuery(e.target.value)}
+                placeholder="Buscar por nome do lote..."
+                className="w-full rounded-lg border border-border bg-background py-1.5 pl-8 pr-8 text-xs placeholder:text-muted-foreground/70 focus:border-primary focus:outline-none transition"
+              />
+              {historySearchQuery && (
+                <button
+                  type="button"
+                  aria-label="Limpar busca"
+                  onClick={() => setHistorySearchQuery("")}
+                  className="absolute right-2.5 top-1/2 -translate-y-1/2 p-0.5 text-muted-foreground hover:text-foreground transition"
                 >
-                  <FolderOpen className={`h-4 w-4 ${isSelected ? "text-primary" : "text-muted-foreground group-hover:text-primary transition"}`} />
+                  <X className="h-3.5 w-3.5" />
+                </button>
+              )}
+            </div>
+          </div>
 
-                  {/* Nome ou Campo de Edição */}
-                  {isEditing ? (
-                    <div
-                      onClick={(e) => e.stopPropagation()}
-                      className="flex flex-1 items-center gap-2"
-                    >
-                      <input
-                        value={editingNameValue}
-                        onChange={(e) => setEditingNameValue(e.target.value)}
-                        onKeyDown={(e) => {
-                          if (e.key === "Enter") handleSaveHistoryRename(b.id);
-                          if (e.key === "Escape") setEditingId(null);
-                        }}
-                        autoFocus
-                        className="rounded border border-primary bg-background px-2 py-1 font-mono text-xs outline-none"
-                      />
-                      <button
-                        onClick={() => handleSaveHistoryRename(b.id)}
-                        className="rounded bg-primary px-2 py-1 text-xs font-semibold text-primary-foreground hover:opacity-90"
-                      >
-                        <Save className="h-3.5 w-3.5" />
-                      </button>
-                      <button
-                        onClick={() => setEditingId(null)}
-                        className="p-1 text-muted-foreground hover:text-foreground"
-                      >
-                        <X className="h-3.5 w-3.5" />
-                      </button>
-                    </div>
-                  ) : (
-                    <div className="flex flex-1 flex-col">
-                      <div className="flex items-center gap-2">
-                        <span className="font-mono text-xs font-semibold group-hover:text-primary transition">{b.name}</span>
-                        {isSelected && (
-                          <span className="rounded bg-primary/20 px-1.5 py-0.2 text-[10px] font-semibold text-primary">
-                            Ativo
-                          </span>
+          {/* Filtros rápidos por tipo */}
+          <div className="mb-3 flex flex-wrap items-center gap-1.5">
+            <button
+              type="button"
+              onClick={() => setHistoryFilter("all")}
+              className={`rounded-full px-3 py-1 text-xs font-medium transition cursor-pointer ${
+                historyFilter === "all"
+                  ? "bg-primary text-primary-foreground font-semibold shadow-xs"
+                  : "border border-border bg-surface/50 text-muted-foreground hover:bg-surface hover:text-foreground"
+              }`}
+            >
+              Todos ({history.length})
+            </button>
+            <button
+              type="button"
+              onClick={() => setHistoryFilter("videos")}
+              className={`rounded-full px-3 py-1 text-xs font-medium transition cursor-pointer ${
+                historyFilter === "videos"
+                  ? "bg-primary text-primary-foreground font-semibold shadow-xs"
+                  : "border border-border bg-surface/50 text-muted-foreground hover:bg-surface hover:text-foreground"
+              }`}
+            >
+              🎬 Somente Vídeos ({videoBatchesCount})
+            </button>
+            <button
+              type="button"
+              onClick={() => setHistoryFilter("carousels")}
+              className={`rounded-full px-3 py-1 text-xs font-medium transition cursor-pointer ${
+                historyFilter === "carousels"
+                  ? "bg-primary text-primary-foreground font-semibold shadow-xs"
+                  : "border border-border bg-surface/50 text-muted-foreground hover:bg-surface hover:text-foreground"
+              }`}
+            >
+              🖼️ Carrosséis ({carouselBatchesCount})
+            </button>
+            <button
+              type="button"
+              onClick={() => setHistoryFilter("scheduled")}
+              className={`rounded-full px-3 py-1 text-xs font-medium transition cursor-pointer ${
+                historyFilter === "scheduled"
+                  ? "bg-primary text-primary-foreground font-semibold shadow-xs"
+                  : "border border-border bg-surface/50 text-muted-foreground hover:bg-surface hover:text-foreground"
+              }`}
+            >
+              📅 Com Agendamento ({scheduledBatchesCount})
+            </button>
+          </div>
+
+          {/* Lista de Projetos ou Estado Vazio */}
+          {filteredHistory.length === 0 ? (
+            <div className="rounded-xl border border-dashed border-border bg-surface/20 p-8 text-center">
+              <SearchX className="mx-auto h-8 w-8 text-muted-foreground/60" />
+              <p className="mt-2 text-sm font-semibold text-foreground">Nenhum lote encontrado</p>
+              <p className="mt-1 text-xs text-muted-foreground">
+                Não encontramos projetos correspondentes ao filtro &quot;{historyFilter}&quot;{historySearchQuery ? ` e busca "${historySearchQuery}"` : ""}.
+              </p>
+              <button
+                type="button"
+                onClick={() => {
+                  setHistorySearchQuery("");
+                  setHistoryFilter("all");
+                }}
+                className="mt-4 inline-flex items-center gap-1.5 rounded-lg border border-primary/30 bg-primary/10 px-3 py-1.5 text-xs font-semibold text-primary hover:bg-primary hover:text-primary-foreground transition cursor-pointer"
+              >
+                Limpar busca e filtros
+              </button>
+            </div>
+          ) : (
+            <ul className="divide-y divide-border rounded-lg border border-border bg-surface/20">
+              {filteredHistory.map((b) => {
+                const isSelected = activeBatchId === b.id;
+                const isEditing = editingId === b.id;
+
+                // Miniatura visual
+                const activeThumbUrl = activeBatchId === b.id
+                  ? (items[0]?.previewUrl || images[0]?.previewUrl)
+                  : null;
+                const activeThumbKind = activeBatchId === b.id
+                  ? (items.length > 0 ? "video" : images.length > 0 ? "image" : null)
+                  : null;
+
+                const storedThumb = batchThumbnails[b.id];
+                const thumbUrl = activeThumbUrl || storedThumb?.url;
+                const thumbKind =
+                  activeThumbKind ||
+                  storedThumb?.kind ||
+                  (b.imageCount > 0 && b.videoCount === 0 ? "image" : "video");
+                const isScheduled = batchHasScheduledPost(b, scheduledPosts);
+
+                return (
+                  <li
+                    key={b.id}
+                    onClick={() => handleOpenProject(b)}
+                    className={`group flex flex-col gap-3 p-3 sm:flex-row sm:items-center sm:gap-4 sm:px-4 sm:py-3 text-sm cursor-pointer transition ${
+                      isSelected ? "bg-primary/10" : "hover:bg-surface/60"
+                    }`}
+                  >
+                    <div className="flex items-center gap-3 min-w-0 flex-1">
+                      {/* Miniatura visual do primeiro vídeo/slide */}
+                      <div className="relative h-14 w-14 sm:h-16 sm:w-16 shrink-0 overflow-hidden rounded-lg border border-border bg-surface/50 flex items-center justify-center">
+                        {thumbUrl ? (
+                          thumbKind === "image" ? (
+                            <img
+                              src={thumbUrl}
+                              alt=""
+                              className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
+                            />
+                          ) : (
+                            <video
+                              src={`${thumbUrl}#t=0.001`}
+                              preload="metadata"
+                              muted
+                              playsInline
+                              className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105 pointer-events-none"
+                            />
+                          )
+                        ) : (
+                          <div
+                            className={`grid h-full w-full place-items-center ${
+                              b.imageCount > 0 && b.videoCount === 0
+                                ? "bg-emerald-500/10 text-emerald-400"
+                                : "bg-indigo-500/10 text-indigo-400"
+                            }`}
+                          >
+                            {b.imageCount > 0 && b.videoCount === 0 ? (
+                              <Layers3 className="h-6 w-6" />
+                            ) : (
+                              <Film className="h-6 w-6" />
+                            )}
+                          </div>
+                        )}
+
+                        {/* Mini badge overlay de quantidade */}
+                        <span className="absolute bottom-1 right-1 rounded bg-background/90 px-1 py-0.2 text-[9px] font-semibold text-foreground flex items-center gap-0.5 shadow-xs">
+                          {b.imageCount > 0 && b.videoCount === 0 ? (
+                            <>
+                              <Layers3 className="h-2.5 w-2.5 text-emerald-400" />
+                              <span>{b.imageCount}</span>
+                            </>
+                          ) : (
+                            <>
+                              <Film className="h-2.5 w-2.5 text-indigo-400" />
+                              <span>{b.videoCount}</span>
+                            </>
+                          )}
+                        </span>
+                      </div>
+
+                      {/* Informações ou Edição do Lote */}
+                      <div className="flex flex-1 flex-col min-w-0">
+                        {isEditing ? (
+                          <div
+                            onClick={(e) => e.stopPropagation()}
+                            className="flex flex-1 items-center gap-2"
+                          >
+                            <input
+                              value={editingNameValue}
+                              onChange={(e) => setEditingNameValue(e.target.value)}
+                              onKeyDown={(e) => {
+                                if (e.key === "Enter") handleSaveHistoryRename(b.id);
+                                if (e.key === "Escape") setEditingId(null);
+                              }}
+                              autoFocus
+                              className="rounded border border-primary bg-background px-2 py-1 font-mono text-xs outline-none"
+                            />
+                            <button
+                              onClick={() => handleSaveHistoryRename(b.id)}
+                              className="rounded bg-primary px-2 py-1 text-xs font-semibold text-primary-foreground hover:opacity-90"
+                            >
+                              <Save className="h-3.5 w-3.5" />
+                            </button>
+                            <button
+                              onClick={() => setEditingId(null)}
+                              className="p-1 text-muted-foreground hover:text-foreground"
+                            >
+                              <X className="h-3.5 w-3.5" />
+                            </button>
+                          </div>
+                        ) : (
+                          <>
+                            <div className="flex flex-wrap items-center gap-1.5">
+                              <span className="font-mono text-xs font-semibold group-hover:text-primary transition truncate">
+                                {b.name}
+                              </span>
+                              {isSelected && (
+                                <span className="rounded bg-primary/20 px-1.5 py-0.2 text-[10px] font-semibold text-primary">
+                                  Ativo
+                                </span>
+                              )}
+                              {isScheduled && (
+                                <span className="inline-flex items-center gap-0.5 rounded bg-amber-500/15 px-1.5 py-0.2 text-[10px] font-semibold text-amber-400">
+                                  <CalendarClock className="h-2.5 w-2.5" /> Agendado
+                                </span>
+                              )}
+                            </div>
+                            <div className="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[11px] text-muted-foreground">
+                              <span>{formatBatchDate(b.createdAt)}</span>
+                              <span>·</span>
+                              <span>
+                                {b.videoCount > 0 ? `${b.videoCount} vídeo(s)` : ""}
+                                {b.videoCount > 0 && b.imageCount > 0 ? " · " : ""}
+                                {b.imageCount > 0 ? `${b.imageCount} imagem(ns)` : ""}
+                                {b.videoCount === 0 && b.imageCount === 0 ? "Sem arquivos" : ""}
+                              </span>
+                              {b.fileNames?.length > 0 && (
+                                <>
+                                  <span className="hidden sm:inline">·</span>
+                                  <span className="hidden sm:inline truncate max-w-xs text-muted-foreground/80">
+                                    {b.fileNames[0]}
+                                    {b.fileNames.length > 1 ? ` (+${b.fileNames.length - 1})` : ""}
+                                  </span>
+                                </>
+                              )}
+                            </div>
+                          </>
                         )}
                       </div>
-                      <span className="text-[11px] text-muted-foreground">
-                        {b.videoCount} vídeo(s) · {b.imageCount} imagem(ns)
-                      </span>
                     </div>
-                  )}
 
-                  <div className="ml-auto flex items-center gap-2">
-                    {/* Botão Escolher Opção */}
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleOpenProject(b);
-                      }}
-                      className="rounded-lg border border-primary/50 bg-primary/10 px-3 py-1.5 text-xs font-semibold text-primary hover:bg-primary hover:text-primary-foreground transition shadow-sm"
-                    >
-                      Escolher opção
-                    </button>
-
-                    {/* Botão Renomear */}
-                    {!isEditing && (
+                    {/* Ações à direita */}
+                    <div className="flex items-center justify-end gap-2 shrink-0 sm:ml-auto">
                       <button
-                        aria-label="Renomear lote"
                         onClick={(e) => {
                           e.stopPropagation();
-                          startRenameHistoryBatch(b);
+                          handleOpenProject(b);
                         }}
-                        title="Renomear lote e salvar"
-                        className="p-1.5 text-muted-foreground hover:text-foreground transition"
+                        className="rounded-lg border border-primary/50 bg-primary/10 px-3 py-1.5 text-xs font-semibold text-primary hover:bg-primary hover:text-primary-foreground transition shadow-xs"
                       >
-                        <Edit2 className="h-3.5 w-3.5" />
+                        Escolher opção
                       </button>
-                    )}
 
-                    {/* Destino prévio */}
-                    <span className="inline-flex items-center gap-1 text-[11px] text-muted-foreground">
-                      <Clock className="h-3 w-3" /> {b.destination === "ai" ? "IA" : "Editor"}
-                    </span>
+                      {!isEditing && (
+                        <button
+                          aria-label="Renomear lote"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            startRenameHistoryBatch(b);
+                          }}
+                          title="Renomear lote e salvar"
+                          className="p-1.5 text-muted-foreground hover:text-foreground transition"
+                        >
+                          <Edit2 className="h-3.5 w-3.5" />
+                        </button>
+                      )}
 
-                    {/* Remover */}
-                    <button
-                      aria-label="Remover lote"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        const updated = removeBatch(b.id);
-                        deleteBatchFiles(b.id);
-                        setHistory(updated);
-                        if (activeBatchId === b.id) {
-                          setActiveBatchId(null);
-                        }
-                      }}
-                      title="Excluir lote"
-                      className="p-1.5 text-muted-foreground hover:text-destructive transition"
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </button>
-                  </div>
-                </li>
-              );
-            })}
-          </ul>
-          <p className="mt-2 text-xs text-muted-foreground">
-            O histórico guarda nomes, datas e registros dos projetos. Você pode escolher qualquer lote ou renomeá-lo a
-            qualquer momento.
+                      <span className="inline-flex items-center gap-1 text-[11px] text-muted-foreground">
+                        <Clock className="h-3 w-3" /> {b.destination === "ai" ? "IA" : "Editor"}
+                      </span>
+
+                      <button
+                        aria-label="Remover lote"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          const updated = removeBatch(b.id);
+                          deleteBatchFiles(b.id);
+                          setHistory(updated);
+                          if (activeBatchId === b.id) {
+                            setActiveBatchId(null);
+                          }
+                        }}
+                        title="Excluir lote"
+                        className="p-1.5 text-muted-foreground hover:text-destructive transition"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </button>
+                    </div>
+                  </li>
+                );
+              })}
+            </ul>
+          )}
+
+          <p className="mt-2.5 text-xs text-muted-foreground">
+            O histórico guarda nomes, datas e registros dos projetos. Você pode pesquisar, filtrar, escolher qualquer lote ou renomeá-lo a qualquer momento.
           </p>
         </div>
       )}
@@ -1143,3 +1599,20 @@ function formatBatchDate(iso: string) {
     return iso;
   }
 }
+
+function batchHasScheduledPost(batch: BatchRecord, posts: ScheduledPost[]): boolean {
+  if (!posts.length) return false;
+  const batchNameLower = batch.name.toLowerCase();
+  const batchFileNames = (batch.fileNames || []).map((f) => f.toLowerCase());
+  return posts.some((p) => {
+    const vName = (p.videoName || "").toLowerCase();
+    const hName = (p.headline || "").toLowerCase();
+    return (
+      (vName && batchFileNames.includes(vName)) ||
+      (hName && batchFileNames.includes(hName)) ||
+      (vName && (vName === batchNameLower || batchNameLower.includes(vName))) ||
+      (hName && (hName === batchNameLower || batchNameLower.includes(hName)))
+    );
+  });
+}
+
