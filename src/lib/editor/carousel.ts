@@ -382,7 +382,7 @@ export async function startBlankCarousel(customName?: string): Promise<{
     file,
     kind: "image",
     source: {
-      postUrl: "",
+      sourceUrl: "",
       caption: "",
       slideIndex: 1,
     },
