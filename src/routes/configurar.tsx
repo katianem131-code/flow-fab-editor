@@ -1,7 +1,9 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
-import { Star, Trash2, Upload, ImageIcon } from "lucide-react";
+import { Star, Trash2, Upload, ImageIcon, Pencil, Plus } from "lucide-react";
+import { TemplateStudioDialog } from "@/components/editor/TemplateStudioDialog";
+import { SocialAccountsHub } from "@/components/editor/SocialAccountsHub";
 import { Header } from "@/components/editor/Header";
 import { InstagramConnect } from "@/components/editor/InstagramConnect";
 import { Button } from "@/components/ui/button";
@@ -37,7 +39,7 @@ function ConfigPage() {
           <h1 className="text-xl font-semibold">Configurar</h1>
           <p className="text-xs text-muted-foreground">Contas, templates e logos usados no seu trabalho.</p>
         </div>
-        <InstagramConnect />
+        <SocialAccountsHub instagram={<InstagramConnect />} />
         <TemplatesSection />
         <LogosSection />
       </main>
@@ -48,7 +50,11 @@ function ConfigPage() {
 function TemplatesSection() {
   const [list, setList] = useState<VideoTemplate[]>([]);
   const [fav, setFav] = useState<string | null>(null);
-  useEffect(() => { setList(getAllTemplates()); setFav(getFavoriteTemplateId()); }, []);
+  const [studioOpen, setStudioOpen] = useState(false);
+  const [editing, setEditing] = useState<VideoTemplate | null>(null);
+  const refresh = () => { setList(getAllTemplates()); setFav(getFavoriteTemplateId()); };
+  useEffect(refresh, []);
+  const openStudio = (t: VideoTemplate | null) => { setEditing(t); setStudioOpen(true); };
   const toggle = (id: string) => {
     const next = fav === id ? null : id;
     setFavoriteTemplateId(next);
@@ -57,10 +63,15 @@ function TemplatesSection() {
   };
   return (
     <section className="rounded-xl border border-border bg-surface/60 p-4">
-      <h2 className="text-base font-semibold">Templates</h2>
-      <p className="mb-3 text-[11px] text-muted-foreground">
-        A estrela define o template padrão, aplicado automaticamente em cada lote novo. Para ajustar um template, abra o editor de vídeo.
-      </p>
+      <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+        <div>
+          <h2 className="text-base font-semibold">Templates</h2>
+          <p className="text-[11px] text-muted-foreground">
+            A estrela define o template padrão, aplicado em cada lote novo. O lápis abre o editor do template.
+          </p>
+        </div>
+        <Button size="sm" onClick={() => openStudio(null)}><Plus className="h-4 w-4" /> Novo template</Button>
+      </div>
       <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 md:grid-cols-4">
         {list.map((t) => (
           <div key={t.id} className={`rounded-lg border p-2 ${fav === t.id ? "border-primary" : "border-border"}`}>
@@ -74,6 +85,9 @@ function TemplatesSection() {
               <Button size="icon" variant="ghost" className="h-7 w-7" aria-label="Definir como padrão" onClick={() => toggle(t.id)}>
                 <Star className={`h-4 w-4 ${fav === t.id ? "fill-primary text-primary" : ""}`} />
               </Button>
+              <Button size="icon" variant="ghost" className="h-7 w-7" aria-label="Editar template" onClick={() => openStudio(t)}>
+                <Pencil className="h-4 w-4" />
+              </Button>
               {t.isCustom && (
                 <Button size="icon" variant="ghost" className="h-7 w-7 hover:text-destructive" aria-label="Excluir" onClick={() => { setList([...deleteCustomTemplate(t.id), ...getAllTemplates().filter((x) => !x.isCustom)]); setFav(getFavoriteTemplateId()); }}>
                   <Trash2 className="h-4 w-4" />
@@ -83,6 +97,7 @@ function TemplatesSection() {
           </div>
         ))}
       </div>
+      <TemplateStudioDialog open={studioOpen} onClose={() => { setStudioOpen(false); refresh(); }} templateToEdit={editing} onSaved={refresh} />
     </section>
   );
 }
