@@ -1,6 +1,5 @@
 import { useEffect, useState } from "react";
-import { Link } from "@tanstack/react-router";
-import { Sparkles, Mic, Loader2, Settings } from "lucide-react";
+import { Sparkles, Mic, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { useEditor } from "@/lib/editor/store";
 import { useAI, aiReady } from "@/lib/ai/settings";
@@ -35,11 +34,7 @@ export function AITitleTools() {
         <div className="mb-1 flex items-center gap-1 font-medium text-foreground">
           <Sparkles className="h-3 w-3 text-primary" /> IA desativada
         </div>
-        Configure uma API externa no{" "}
-        <Link to="/admin" className="text-primary underline">
-          painel administrativo
-        </Link>{" "}
-        para gerar títulos e transcrever áudio.
+        Recurso indisponível no momento.
       </div>
     );
   }
@@ -84,12 +79,6 @@ export function AITitleTools() {
         <div className="flex items-center gap-1 text-xs font-semibold">
           <Sparkles className="h-3 w-3 text-primary" /> Assistente de IA
         </div>
-        <Link
-          to="/admin"
-          className="inline-flex items-center gap-1 text-[10px] text-muted-foreground hover:text-foreground"
-        >
-          <Settings className="h-3 w-3" /> Configurar
-        </Link>
       </div>
 
       <textarea

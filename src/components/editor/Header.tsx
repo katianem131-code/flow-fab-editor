@@ -18,7 +18,7 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sh
 type Item = {
   label: string;
   icon: typeof Scissors;
-  to: "/" | "/dashboard" | "/descobrir" | "/agenda" | "/admin" | "/planos";
+  to: "/" | "/dashboard" | "/descobrir" | "/agenda" | "/configurar" | "/planos";
   hash?: string;
   match: (path: string, hash: string) => boolean;
 };
@@ -37,7 +37,7 @@ const MAIN: Item[] = [
   { label: "Agendar", icon: CalendarClock, to: "/agenda", match: (p) => p.startsWith("/agenda") },
 ];
 const FOOT: Item[] = [
-  { label: "Configurar", icon: Settings, to: "/admin", match: (p) => p.startsWith("/admin") },
+  { label: "Configurar", icon: Settings, to: "/configurar", match: (p) => p.startsWith("/configurar") },
   { label: "Créditos", icon: Gem, to: "/planos", match: (p) => p.startsWith("/planos") },
 ];
 
