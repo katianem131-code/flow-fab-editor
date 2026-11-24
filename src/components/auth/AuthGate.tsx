@@ -3,7 +3,7 @@ import { useNavigate, useRouterState } from "@tanstack/react-router";
 import { Scissors } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 
-const PUBLIC_PATHS = ["/auth", "/reset-password"];
+const PUBLIC_PATHS = ["/auth", "/reset-password", "/privacidade", "/termos", "/exclusao-de-dados"];
 export const AFTER_LOGIN_KEY = "labremix:after-login";
 
 export function isPublicPath(path: string) {

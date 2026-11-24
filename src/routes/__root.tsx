@@ -12,6 +12,7 @@ import { useEffect, type ReactNode } from "react";
 
 import { Toaster } from "@/components/ui/sonner";
 import { AuthGate } from "@/components/auth/AuthGate";
+import { LegalLinks } from "@/components/legal/LegalLayout";
 import appCss from "../styles.css?url";
 import { reportLovableError } from "../lib/lovable-error-reporting";
 
@@ -109,7 +110,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
 
 function RootShell({ children }: { children: ReactNode }) {
   return (
-    <html lang="en">
+    <html lang="pt-BR">
       <head>
         <HeadContent />
       </head>
@@ -130,6 +131,9 @@ function RootComponent() {
       <AuthGate>
         <Outlet />
       </AuthGate>
+      <footer className="border-t border-border bg-background px-4 py-5">
+        <LegalLinks />
+      </footer>
       <Toaster richColors position="top-center" />
     </QueryClientProvider>
   );

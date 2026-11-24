@@ -59,6 +59,11 @@ export function InstagramConnect() {
           <Instagram className="h-4 w-4" /> Conectar Instagram
         </Button>
       </div>
+      <p className="mt-3 max-w-2xl text-xs leading-5 text-muted-foreground">
+        Ao conectar, você escolhe na Meta as contas profissionais que o LabRemix poderá acessar para identificar as contas e publicar o conteúdo que você agendar.
+        A conexão não publica nada por si só. Você pode desconectar a conta e revogar o acesso quando quiser.
+        {" "}<a href="/privacidade" className="underline">Privacidade</a>{" · "}<a href="/exclusao-de-dados" className="underline">Exclusão de dados</a>
+      </p>
       {accs.length > 0 && (
         <div className="mt-3 flex flex-wrap gap-2">
           {accs.map((a) => (
