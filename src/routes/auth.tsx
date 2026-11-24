@@ -108,6 +108,12 @@ function AuthPage() {
             </div>
           )}
           {info && <p className="rounded-md border border-primary/40 bg-primary/10 p-2 text-sm">{info}</p>}
+          {mode === "signup" && (
+            <p className="text-xs leading-5 text-muted-foreground">
+              Ao cadastrar-se, você concorda com os <a href="/termos" target="_blank" rel="noopener noreferrer" className="underline">Termos de Uso</a> e declara ter lido a <a href="/privacidade" target="_blank" rel="noopener noreferrer" className="underline">Política de Privacidade</a>.
+              Para solicitar a exclusão dos seus dados, consulte as <a href="/exclusao-de-dados" target="_blank" rel="noopener noreferrer" className="underline">instruções de exclusão</a>.
+            </p>
+          )}
           <Button type="submit" className="w-full" disabled={busy}>
             {busy ? "Aguarde..." : mode === "login" ? "Entrar" : mode === "signup" ? "Cadastrar" : "Enviar link"}
           </Button>
