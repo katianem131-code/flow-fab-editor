@@ -18,3 +18,4 @@
 - Meta callback diagnostics go only through `src/lib/meta/diagnostics.ts` (schema-validated enums and counts with a random per-attempt ID); never log tokens, codes, state, IDs, usernames, URLs or raw Graph data.
 - Template Studio exposes overlay and mask controls under Layers using the existing live stores and preview renderer, so moving controls does not change export or persistence semantics.
 - Carousel editing keeps photo backgrounds and text/stripe layers in `src/lib/editor/carousel.ts`; drafts stay in IndexedDB and only an explicit save replaces the selected batch assets, preserving unrelated media and editable layers for reopening.
+- Scheduled media previews resolve short-lived Storage URLs in the browser with the current user's session; private files stay private and only the visible carousel slide is loaded.

@@ -3,6 +3,7 @@ import { useEffect, useMemo, useState } from "react";
 import { CalendarCheck, Trash2, Plus } from "lucide-react";
 import { Header } from "@/components/editor/Header";
 import { InstagramConnect } from "@/components/editor/InstagramConnect";
+import { ScheduledMediaPreview } from "@/components/editor/ScheduledMediaPreview";
 import {
   useSchedule,
   countByStatus,
@@ -17,9 +18,15 @@ export const Route = createFileRoute("/agenda")({
   head: () => ({
     meta: [
       { title: "Agenda de posts — LabRemix" },
-      { name: "description", content: "Acompanhe, ajuste e gerencie as publicações agendadas no Instagram." },
+      {
+        name: "description",
+        content: "Acompanhe, ajuste e gerencie as publicações agendadas no Instagram.",
+      },
       { property: "og:title", content: "Agenda de posts — LabRemix" },
-      { property: "og:description", content: "Central de agendamento e publicação em massa do LabRemix." },
+      {
+        property: "og:description",
+        content: "Central de agendamento e publicação em massa do LabRemix.",
+      },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
     ],
@@ -51,10 +58,16 @@ function PostRow({ p }: { p: ScheduledPost }) {
           {fmt(p.publishAt)} · {p.accounts.join(", ")} · {FORMAT_LABEL[p.format]}
         </p>
       </div>
-      <span className={`rounded-full px-2 py-0.5 text-[10px] font-semibold ${STATUS_STYLE[p.status]}`}>
+      <span
+        className={`rounded-full px-2 py-0.5 text-[10px] font-semibold ${STATUS_STYLE[p.status]}`}
+      >
         {STATUS_LABEL[p.status]}
       </span>
-      <button aria-label="Excluir" onClick={() => remove(p.id)} className="text-muted-foreground hover:text-destructive">
+      <button
+        aria-label="Excluir"
+        onClick={() => remove(p.id)}
+        className="text-muted-foreground hover:text-destructive"
+      >
         <Trash2 className="h-4 w-4" />
       </button>
     </div>
@@ -72,15 +85,24 @@ function CalendarGrid({ posts, days }: { posts: ScheduledPost[]; days: number })
   return (
     <div className="grid grid-cols-7 gap-1.5">
       {cells.map((d) => {
-        const dayPosts = posts.filter((p) => new Date(p.publishAt).toDateString() === d.toDateString());
+        const dayPosts = posts.filter(
+          (p) => new Date(p.publishAt).toDateString() === d.toDateString(),
+        );
         return (
-          <div key={d.toISOString()} className="min-h-20 rounded-md border border-border bg-surface p-1.5">
+          <div
+            key={d.toISOString()}
+            className="min-h-20 rounded-md border border-border bg-surface p-1.5"
+          >
             <p className="text-[10px] text-muted-foreground">
               {d.toLocaleDateString("pt-BR", { weekday: "short", day: "2-digit" })}
             </p>
             {dayPosts.map((p) => (
-              <p key={p.id} className={`mt-1 truncate rounded px-1 text-[10px] ${STATUS_STYLE[p.status]}`}>
-                {new Date(p.publishAt).toLocaleTimeString("pt-BR", { timeStyle: "short" })} {p.headline}
+              <p
+                key={p.id}
+                className={`mt-1 truncate rounded px-1 text-[10px] ${STATUS_STYLE[p.status]}`}
+              >
+                {new Date(p.publishAt).toLocaleTimeString("pt-BR", { timeStyle: "short" })}{" "}
+                {p.headline}
               </p>
             ))}
           </div>
@@ -104,7 +126,11 @@ function AgendaPage() {
       posts
         .filter((p) => account === "all" || p.accounts.includes(account))
         .filter((p) =>
-          filter === "all" ? true : filter === "pending" ? p.status === "scheduled" || p.status === "error" : p.status === filter,
+          filter === "all"
+            ? true
+            : filter === "pending"
+              ? p.status === "scheduled" || p.status === "error"
+              : p.status === filter,
         )
         .sort((a, b) => a.publishAt.localeCompare(b.publishAt)),
     [posts, account, filter],
@@ -118,7 +144,8 @@ function AgendaPage() {
     ["Publicados", counts.published],
     ["Com erro", counts.error],
   ];
-  const sel = "rounded-md border border-border bg-background px-2 py-1.5 text-xs focus:border-primary focus:outline-none";
+  const sel =
+    "rounded-md border border-border bg-background px-2 py-1.5 text-xs focus:border-primary focus:outline-none";
 
   return (
     <div className="min-h-screen bg-background text-foreground">
@@ -126,11 +153,18 @@ function AgendaPage() {
       <main className="mx-auto max-w-6xl space-y-5 p-4">
         <div className="flex flex-wrap items-end justify-between gap-3">
           <div>
-            <p className="text-[10px] font-semibold uppercase tracking-widest text-primary">Publicação em massa</p>
+            <p className="text-[10px] font-semibold uppercase tracking-widest text-primary">
+              Publicação em massa
+            </p>
             <h1 className="text-2xl font-bold">Sua agenda de posts</h1>
-            <p className="text-xs text-muted-foreground">Veja o que vai ao ar, ajuste os horários e acompanhe suas publicações.</p>
+            <p className="text-xs text-muted-foreground">
+              Veja o que vai ao ar, ajuste os horários e acompanhe suas publicações.
+            </p>
           </div>
-          <Link to="/" className="inline-flex items-center gap-1 rounded-md bg-primary px-4 py-2 text-xs font-semibold text-primary-foreground hover:opacity-90">
+          <Link
+            to="/"
+            className="inline-flex items-center gap-1 rounded-md bg-primary px-4 py-2 text-xs font-semibold text-primary-foreground hover:opacity-90"
+          >
             <Plus className="h-3 w-3" /> Novo agendamento
           </Link>
         </div>
@@ -139,14 +173,27 @@ function AgendaPage() {
 
         <div className="grid gap-3 md:grid-cols-[1fr_280px]">
           <section className="rounded-xl border border-border bg-gradient-to-br from-surface to-background p-5">
-            <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">Próxima publicação</p>
+            <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">
+              Próxima publicação
+            </p>
             {next ? (
-              <>
-                <h2 className="mt-3 text-lg font-semibold">{next.headline || next.videoName}</h2>
-                <p className="text-xs text-primary">{fmt(next.publishAt)}</p>
-                <p className="mt-1 text-xs text-muted-foreground">{next.accounts.join(", ")}</p>
-                {next.caption && <p className="mt-3 line-clamp-3 text-xs text-muted-foreground">{next.caption}</p>}
-              </>
+              <div className="mt-3 flex flex-col gap-4 sm:flex-row">
+                <ScheduledMediaPreview key={next.id} post={next} />
+                <div className="min-w-0 flex-1">
+                  <h2 className="break-words text-lg font-semibold">
+                    {next.headline || next.videoName}
+                  </h2>
+                  <p className="mt-1 text-xs text-primary">{fmt(next.publishAt)}</p>
+                  <p className="mt-1 break-words text-xs text-muted-foreground">
+                    {next.accounts.join(", ")}
+                  </p>
+                  {next.caption && (
+                    <p className="mt-3 line-clamp-3 break-words text-xs text-muted-foreground">
+                      {next.caption}
+                    </p>
+                  )}
+                </div>
+              </div>
             ) : (
               <>
                 <h2 className="mt-3 text-lg font-semibold">Espaço para o próximo post</h2>
@@ -156,7 +203,10 @@ function AgendaPage() {
           </section>
           <div className="grid gap-2">
             {stats.map(([l, n]) => (
-              <div key={l} className="flex items-center justify-between rounded-lg border border-border bg-surface px-4 py-2.5">
+              <div
+                key={l}
+                className="flex items-center justify-between rounded-lg border border-border bg-surface px-4 py-2.5"
+              >
                 <span className="text-xs text-muted-foreground">{l}</span>
                 <span className="text-lg font-bold">{n}</span>
               </div>
@@ -181,28 +231,47 @@ function AgendaPage() {
             </div>
             <select className={sel} value={account} onChange={(e) => setAccount(e.target.value)}>
               <option value="all">Todas as contas</option>
-              {accounts.map((a) => <option key={a} value={a}>{a}</option>)}
+              {accounts.map((a) => (
+                <option key={a} value={a}>
+                  {a}
+                </option>
+              ))}
             </select>
-            <select className={sel} value={filter} onChange={(e) => setFilter(e.target.value as Filter)}>
+            <select
+              className={sel}
+              value={filter}
+              onChange={(e) => setFilter(e.target.value as Filter)}
+            >
               <option value="all">Todos os status</option>
               <option value="pending">Pendentes e com erro</option>
-              {(Object.keys(STATUS_LABEL) as PostStatus[]).map((s) => <option key={s} value={s}>{STATUS_LABEL[s]}</option>)}
+              {(Object.keys(STATUS_LABEL) as PostStatus[]).map((s) => (
+                <option key={s} value={s}>
+                  {STATUS_LABEL[s]}
+                </option>
+              ))}
             </select>
           </div>
           {filtered.length === 0 ? (
             <div className="py-10 text-center">
               <CalendarCheck className="mx-auto mb-2 h-5 w-5 text-muted-foreground" />
               <p className="text-sm font-semibold">Nenhum post neste filtro</p>
-              <p className="text-xs text-muted-foreground">Selecione vídeos, fotos ou carrosséis em um lote e clique em Agendar.</p>
+              <p className="text-xs text-muted-foreground">
+                Selecione vídeos, fotos ou carrosséis em um lote e clique em Agendar.
+              </p>
             </div>
           ) : view === "list" ? (
-            <div className="space-y-2">{filtered.map((p) => <PostRow key={p.id} p={p} />)}</div>
+            <div className="space-y-2">
+              {filtered.map((p) => (
+                <PostRow key={p.id} p={p} />
+              ))}
+            </div>
           ) : (
             <CalendarGrid posts={filtered} days={view === "week" ? 7 : 35} />
           )}
         </section>
         <p className="text-center text-[11px] text-muted-foreground">
-          Vídeos dependem de conexão válida e agendador. Rascunhos de imagem/carrossel não são publicados automaticamente.
+          Vídeos dependem de conexão válida e agendador. Rascunhos de imagem/carrossel não são
+          publicados automaticamente.
         </p>
       </main>
     </div>
