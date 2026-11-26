@@ -14,7 +14,7 @@ export async function graphRequest(base: string, path: string, token: string, pa
   let response: Response;
   try {
     response = await fetch(url, { method: write ? "POST" : "GET", headers: { Authorization: `Bearer ${token}` },
-      body: write ? new URLSearchParams(params) : undefined, signal: AbortSignal.timeout(8000) });
+      body: write ? new URLSearchParams(params) : undefined, signal: AbortSignal.timeout(write ? 30000 : 8000) });
   } catch { throw new GraphError("transport", true, write); }
   const body = await response.json().catch(() => null);
   const error = errorSchema.safeParse(body?.error);
