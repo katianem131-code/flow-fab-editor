@@ -1,0 +1,31 @@
+name: Instagram scheduled publishing
+
+on:
+  schedule:
+    - cron: "*/5 * * * *"
+  workflow_dispatch:
+
+permissions: {}
+
+concurrency:
+  group: cron-publish
+  cancel-in-progress: false
+
+jobs:
+  trigger:
+    # Disabled by default: set repository variable CRON_PUBLISH_ENABLED=true to activate.
+    if: vars.CRON_PUBLISH_ENABLED == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - name: Call production worker
+        env:
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
+        run: |
+          set -euo pipefail
+          if [ -z "${CRON_SECRET:-}" ]; then echo "CRON_SECRET not configured"; exit 1; fi
+          code=$(curl -sS -o /dev/null -w '%{http_code}' --max-time 120 --retry 0 \
+            -X POST -H "Authorization: Bearer ${CRON_SECRET}" \
+            https://flow-fab-editor.lovable.app/api/public/cron-publish)
+          echo "HTTP status: ${code}"
+          [ "$code" -ge 200 ] && [ "$code" -lt 300 ]

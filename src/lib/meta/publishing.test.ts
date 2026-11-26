@@ -35,6 +35,11 @@ describe("Instagram delivery safety", () => {
     h.io.status.mockResolvedValue("PUBLISHED"); await stepDestination({ ...h.current }, h.io);
     expect(h.current.phase).toBe("published"); expect(h.io.publish).toHaveBeenCalledTimes(1); expect(h.current.media_id).toBeNull();
   });
+  it("a published destination with a recorded media ID is never touched again", async () => {
+    const h = harness({ ...dest("published"), container_id: "c", media_id: "17872233156659043" });
+    await stepDestination({ ...h.current }, h.io);
+    expect(h.io.save).not.toHaveBeenCalled(); expect(h.io.publish).not.toHaveBeenCalled(); expect(h.io.create).not.toHaveBeenCalled();
+  });
   it("interrupted creation cannot be retried blindly", async () => {
     const h = harness(dest("creating")); await stepDestination({ ...h.current }, h.io); await stepDestination({ ...h.current }, h.io);
     expect(h.current.phase).toBe("unknown"); expect(h.io.create).not.toHaveBeenCalled();
