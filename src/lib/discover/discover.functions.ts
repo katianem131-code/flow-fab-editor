@@ -1,4 +1,12 @@
 import { createServerFn } from "@tanstack/react-start";
+import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { canDiscover } from "@/lib/billing/plans";
+
+// Discovery spends paid provider quota: only signed-in Pro/Agência subscribers.
+async function assertDiscoverPlan(supabase: any, userId: string) {
+  const { data } = await supabase.from("user_billing").select("plan_name, plan_status").eq("user_id", userId).maybeSingle();
+  if (!canDiscover(data?.plan_name, data?.plan_status)) throw new Error("Descobrir virais está disponível nos planos Pro e Agência.");
+}
 
 export type ViralReel = {
   code: string;
@@ -60,13 +68,15 @@ function collectReels(node: unknown, out: Map<string, ViralReel>, depth = 0) {
 export type ViralMode = "subject" | "profile" | "hashtag";
 
 export const searchVirals = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
   .inputValidator((d: { mode: ViralMode; query: string }) => {
     const query = String(d.query ?? "").trim().replace(/^[@#]/, "").slice(0, 80);
     if (!query) throw new Error("Digite um termo de busca");
     const mode: ViralMode = d.mode === "hashtag" || d.mode === "subject" ? d.mode : "profile";
     return { mode, query };
   })
-  .handler(async ({ data }) => {
+  .handler(async ({ data, context }) => {
+    await assertDiscoverPlan(context.supabase, context.userId);
     const key = process.env["RAPIDAPI_KEY"] ?? "";
     const host = process.env["RAPIDAPI_HOST"] ?? "";
     if (!key || !host) return { reels: [] as ViralReel[], error: "Serviço de busca não configurado." };
@@ -88,12 +98,14 @@ export const searchVirals = createServerFn({ method: "POST" })
 export type SimilarProfile = { username: string; fullName: string; avatar: string; followers: number };
 
 export const findSimilarProfiles = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
   .inputValidator((d: { query: string }) => {
     const query = String(d.query ?? "").trim().replace(/^@/, "").slice(0, 80);
     if (!query) throw new Error("Digite um perfil");
     return { query };
   })
-  .handler(async ({ data }) => {
+  .handler(async ({ data, context }) => {
+    await assertDiscoverPlan(context.supabase, context.userId);
     const key = process.env["RAPIDAPI_KEY"] ?? "";
     const host = process.env["RAPIDAPI_HOST"] ?? "";
     if (!key || !host) return { profiles: [] as SimilarProfile[], error: "Serviço de busca não configurado." };
@@ -128,12 +140,14 @@ function collectProfiles(node: unknown, out: Map<string, SimilarProfile>, depth 
 }
 
 export const getTopComments = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
   .inputValidator((d: { code: string }) => {
     const code = String(d.code ?? "");
     if (!/^[\w-]{5,40}$/.test(code)) throw new Error("Código inválido");
     return { code };
   })
-  .handler(async ({ data }) => {
+  .handler(async ({ data, context }) => {
+    await assertDiscoverPlan(context.supabase, context.userId);
     const key = process.env["RAPIDAPI_KEY"] ?? "";
     const host = process.env["RAPIDAPI_HOST"] ?? "";
     if (!key || !host) return { comments: [] as ViralComment[], error: "Serviço de busca não configurado." };

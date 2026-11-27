@@ -22,3 +22,8 @@ export const CREDIT_PACKS: CreditPack[] = [
   { id: "c50", name: "+50 créditos", match: "50 creditos", price: "R$ 19", credits: 50, checkoutUrl: "" },
   { id: "c200", name: "+200 créditos", match: "200 creditos", price: "R$ 59", credits: 200, checkoutUrl: "" },
 ];
+
+/** Planos com acesso a "Descobrir virais". */
+export function canDiscover(planName: string | null | undefined, status: string | null | undefined) {
+  return status === "ativo" && (planName === "Pro" || planName === "Agência");
+}

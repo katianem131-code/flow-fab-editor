@@ -50,7 +50,17 @@ function fail(error: string) {
   return Response.json({ error }, { headers: { "X-Import-Error": "1" } });
 }
 
+async function isSignedIn(request: Request): Promise<boolean> {
+  const token = request.headers.get("authorization")?.match(/^Bearer (.+)$/i)?.[1];
+  if (!token) return false;
+  const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+  const { data, error } = await supabaseAdmin.auth.getUser(token);
+  return !error && !!data.user;
+}
+
 async function handle(request: Request): Promise<Response> {
+  // Downloads use server bandwidth and a shared provider: signed-in users only.
+  if (!(await isSignedIn(request))) return Response.json({ error: "Entre na sua conta para importar links." }, { status: 401, headers: { "X-Import-Error": "1" } });
   const parsedBody = bodySchema.safeParse(await request.json().catch(() => ({})));
   if (!parsedBody.success) return fail("Link inválido");
   const { url } = parsedBody.data;

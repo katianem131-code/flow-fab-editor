@@ -100,9 +100,13 @@ function mimeForFilename(name: string, fallback: string): string {
 
 /** Downloads all videos/photos returned for one public social post. */
 export async function fetchSocialMedia(url: string): Promise<ImportedPost> {
+  const { supabase } = await import("@/integrations/supabase/client");
+  const { data: auth } = await supabase.auth.getSession();
+  const token = auth.session?.access_token;
+  if (!token) throw new Error("Entre na sua conta para importar links.");
   const res = await fetch("/api/public/social-video", {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
     body: JSON.stringify({ url }),
   });
   if (!res.ok || res.headers.get("X-Import-Error")) {

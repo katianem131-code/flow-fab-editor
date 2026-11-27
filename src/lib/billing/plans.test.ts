@@ -13,3 +13,11 @@ describe("planos", () => {
     expect(p).toMatchObject({ email: "a@b.com", event: "approved", productName: "LabRemix Agência", externalId: "abc" });
   });
 });
+
+import { canDiscover } from "./plans";
+describe("Descobrir virais por plano", () => {
+  it("Pro ativo pode", () => expect(canDiscover("Pro", "ativo")).toBe(true));
+  it("Agência ativo pode", () => expect(canDiscover("Agência", "ativo")).toBe(true));
+  it("Básico não pode", () => expect(canDiscover("Básico", "ativo")).toBe(false));
+  it("Pro cancelado não pode", () => expect(canDiscover("Pro", "cancelado")).toBe(false));
+});
